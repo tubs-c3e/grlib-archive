@@ -1,0 +1,445 @@
+m255
+K3
+13
+cModel Technology
+Z0 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+Eahbrom
+Z1 w1288866863
+Z2 DPx5 grlib 7 devices 0 22 SCcPO?3>]2gFCgD_`2RET3
+Z3 DPx5 grlib 7 version 0 22 5MHSbhTW2<8OSfVV9<Yah0
+Z4 DPx5 grlib 6 stdlib 0 22 OGV5Co_5hgI]W[EdVOO:m1
+Z5 DPx3 std 6 textio 0 22 m2KQDRRhmF833<<DjYdL70
+Z6 DPx4 ieee 11 numeric_std 0 22 =NSdli^?T5OD8;4F<blj<3
+Z7 DPx5 grlib 4 amba 0 22 2[7f3_0GB?S]eMzjCc<d:1
+Z8 DPx4 ieee 14 std_logic_1164 0 22 GH1=`jDDBJ=`LM;:Ak`kf2
+Z9 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+Z10 8ahbrom.vhd
+Z11 Fahbrom.vhd
+l0
+L18
+V7SoX8>MCjADB_f`8f[ZB[3
+Z12 OE;C;6.6c;45
+31
+Z13 o-quiet -explicit -93 -work work
+Z14 tShow_source 1 Show_Warning1 0 Show_Warning5 0 Quiet 1
+!s100 M;o:gHC_id9i?NZlNeoWK3
+Artl
+R2
+R3
+R4
+R5
+R6
+R7
+R8
+Z15 DEx4 work 6 ahbrom 0 22 7SoX8>MCjADB_f`8f[ZB[3
+l46
+L34
+VDcmJ:CI4]MC4EAIZz7n?b1
+R12
+31
+Z16 Mx7 4 ieee 14 std_logic_1164
+Z17 Mx6 5 grlib 4 amba
+Z18 Mx5 4 ieee 11 numeric_std
+Z19 Mx4 3 std 6 textio
+Z20 Mx3 5 grlib 6 stdlib
+Z21 Mx2 5 grlib 7 version
+Z22 Mx1 5 grlib 7 devices
+R13
+R14
+!s100 5;WL=;zm>MmMoUH<Q8JWJ0
+Pconfig
+R3
+R4
+R5
+R6
+R7
+R8
+Z23 DPx7 techmap 7 gencomp 0 22 a=YLBKb=miDlUc32z29B93
+R1
+R9
+8config.vhd
+Fconfig.vhd
+l0
+L14
+V:QoM3Z]`o3>CS`^zN4CCA2
+R12
+31
+Z24 Mx7 7 techmap 7 gencomp
+Z25 Mx6 4 ieee 14 std_logic_1164
+Z26 Mx5 5 grlib 4 amba
+Z27 Mx4 4 ieee 11 numeric_std
+Z28 Mx3 3 std 6 textio
+Z29 Mx2 5 grlib 6 stdlib
+Z30 Mx1 5 grlib 7 version
+R13
+R14
+!s100 3CAeio5b:c39Labg@cgcW0
+Ecpu_disas
+Z31 w1288866866
+Z32 DPx5 grlib 11 sparc_disas 0 22 z9KZZYQlQ26JJI]51D62:1
+Z33 DPx5 grlib 5 sparc 0 22 @fnT`9CR>TlKz9TPg_Qz:3
+R3
+R5
+R4
+R6
+R8
+R9
+Z34 8../../lib/work/debug/cpu_disas.vhd
+Z35 F../../lib/work/debug/cpu_disas.vhd
+l0
+L36
+V=JC=7][z_Ik1dZlkl5YkJ0
+R12
+31
+R13
+R14
+!s100 4]O[S?WA7eJWZi]FEklKc0
+Abehav
+R32
+R33
+R3
+R5
+R4
+R6
+R8
+DEx4 work 9 cpu_disas 0 22 =JC=7][z_Ik1dZlkl5YkJ0
+l53
+L52
+Vc0nDI7z5QWd0nc5njlV]P1
+R12
+31
+R16
+Z36 Mx6 4 ieee 11 numeric_std
+Z37 Mx5 5 grlib 6 stdlib
+R19
+Z38 Mx3 5 grlib 7 version
+Z39 Mx2 5 grlib 5 sparc
+Z40 Mx1 5 grlib 11 sparc_disas
+R13
+R14
+!s100 eGGBa__Ue?To`j0W;dIZK0
+Pdebug
+R3
+R4
+R5
+R6
+R7
+R8
+R31
+R9
+8../../lib/work/debug/debug.vhd
+F../../lib/work/debug/debug.vhd
+l0
+L31
+Vo[NUVZjJLamK=QmU?<KHK2
+R12
+31
+R25
+R26
+R27
+R28
+R29
+R30
+R13
+R14
+!s100 35GWW6za]@7hCZbGUzlER2
+Egaisler_cpu_disas
+R31
+R32
+R33
+R3
+R5
+R4
+R6
+R8
+R9
+R34
+R35
+l0
+L89
+VJ:dB7h4Q<6N`NE4NTzhKD1
+R12
+31
+R13
+R14
+!s100 Rb`nFHH]bTGR0[RaAQ`Si0
+Abehav
+R32
+R33
+R3
+R5
+R4
+R6
+R8
+DEx4 work 17 gaisler_cpu_disas 0 22 J:dB7h4Q<6N`NE4NTzhKD1
+l106
+L105
+VQ?XleWFiQkcKWfloPadcK3
+R12
+31
+R16
+R36
+R37
+R19
+R38
+R39
+R40
+R13
+R14
+!s100 1LSA>8`QN6W_?K`hhefYd2
+Egrtestmod
+R31
+R2
+R7
+Z41 DPx5 grlib 5 stdio 0 22 <_FK]jMK>6ZWIBz[<=z<j2
+R3
+R6
+R4
+R5
+Z42 DPx7 gaisler 3 sim 0 22 bEogN6OoSBgk9CLoOA=BE1
+R8
+R9
+Z43 8../../lib/work/debug/grtestmod.vhd
+Z44 F../../lib/work/debug/grtestmod.vhd
+l0
+L34
+VMGBd@NK4P9V=glSz_O]Ya3
+R12
+31
+R13
+R14
+!s100 PH@Y2?hLz:eGhKoEe_3h<1
+Asim
+R2
+R7
+R41
+R3
+R6
+R4
+R5
+R42
+R8
+DEx4 work 9 grtestmod 0 22 MGBd@NK4P9V=glSz_O]Ya3
+l63
+L51
+VIcL8]4fIhg1DA[zGV@n4Z3
+R12
+31
+Z45 Mx9 4 ieee 14 std_logic_1164
+Z46 Mx8 7 gaisler 3 sim
+Z47 Mx7 3 std 6 textio
+Z48 Mx6 5 grlib 6 stdlib
+R18
+Z49 Mx4 5 grlib 7 version
+Z50 Mx3 5 grlib 5 stdio
+Z51 Mx2 5 grlib 4 amba
+R22
+R13
+R14
+!s100 <R=f4d<c^SIMS58VKhC2h0
+Eleon3mp
+R1
+Z52 DPx4 work 6 config 0 22 :QoM3Z]`o3>CS`^zN4CCA2
+Z53 DPx3 esa 10 memoryctrl 0 22 OkCBUE0_kAT^7RO[29X380
+Z54 DPx7 gaisler 3 ata 0 22 _7ZoNlVAH7jMY0`>fmkab1
+Z55 DPx7 gaisler 5 grusb 0 22 538^]gKjO<@:Z`00Icgi?0
+Z56 DPx7 gaisler 9 spacewire 0 22 N9?c4`>9lffM:Gg`>Z=h40
+Z57 DPx7 gaisler 4 jtag 0 22 N0ToN4DJ?F[fZkI6QM@iB0
+Z58 DPx7 gaisler 3 net 0 22 h]jC<^k[DQWl2PB>8WGn93
+Z59 DPx7 gaisler 3 can 0 22 A]dHPV_kQ@ao9Wc5V?PDf1
+R2
+Z60 DPx7 gaisler 4 misc 0 22 ;:dTj5R=0FRlA?Ko5dmDc3
+Z61 DPx7 gaisler 4 uart 0 22 U`=PD^a?IWBNe7CQc?gzi3
+Z62 DPx7 gaisler 5 leon3 0 22 7bXc20N]^>RX^eW4Wfc1n0
+Z63 DPx7 gaisler 7 memctrl 0 22 nIe79a9P_b]4@Fj98>P;W0
+R23
+R3
+R4
+R5
+R6
+R7
+R8
+R9
+Z64 8leon3mp.vhd
+Z65 Fleon3mp.vhd
+l0
+L48
+VhCK4R]iZlKD3z17k4M6E>1
+R12
+31
+R13
+R14
+!s100 AlO_j;P79`9KYMd4_RBgP2
+Artl
+Z66 DPx7 techmap 9 allclkgen 0 22 @k7P`Uc0A<b[6mJI90Un>1
+Z67 DEx4 work 10 vga_clkgen 0 22 =fa<f?_N_>cE?N26f`IfJ1
+R15
+R52
+R53
+R54
+R55
+R56
+R57
+R58
+R59
+R2
+R60
+R61
+R62
+R63
+R23
+R3
+R4
+R5
+R6
+R7
+R8
+DEx4 work 7 leon3mp 0 22 hCK4R]iZlKD3z17k4M6E>1
+l266
+L168
+V;U9QT_TeWo>a;ehg8<QM`0
+!s100 <?Fj6_j^hJdML7>na71<_0
+R12
+31
+Mx21 4 ieee 14 std_logic_1164
+Mx20 5 grlib 4 amba
+Mx19 4 ieee 11 numeric_std
+Mx18 3 std 6 textio
+Mx17 5 grlib 6 stdlib
+Mx16 5 grlib 7 version
+Mx15 7 techmap 7 gencomp
+Mx14 7 gaisler 7 memctrl
+Mx13 7 gaisler 5 leon3
+Mx12 7 gaisler 4 uart
+Mx11 7 gaisler 4 misc
+Mx10 5 grlib 7 devices
+Mx9 7 gaisler 3 can
+Mx8 7 gaisler 3 net
+Mx7 7 gaisler 4 jtag
+Mx6 7 gaisler 9 spacewire
+Mx5 7 gaisler 5 grusb
+Z68 Mx4 7 gaisler 3 ata
+Mx3 3 esa 10 memoryctrl
+Mx2 4 work 6 config
+Z69 Mx1 7 techmap 9 allclkgen
+R13
+R14
+Etestbench
+R1
+R52
+Z70 DPx4 work 5 debug 0 22 o[NUVZjJLamK=QmU?<KHK2
+Z71 DPx6 micron 10 components 0 22 aojzOU1kd4RMN9[>nCbhg2
+R41
+R42
+R23
+R2
+R60
+R61
+R3
+R4
+R5
+R6
+R7
+Z72 DPx7 gaisler 7 libdcom 0 22 9U2S891GQWS1B4nRoaoZ>2
+R8
+R9
+Z73 8testbench.vhd
+Z74 Ftestbench.vhd
+l0
+L37
+VlUN2Ta6?l=^:omBQ=WYAd0
+!s100 ]RF0e9_?3?8g<Dag^>DdN2
+R12
+31
+R13
+R14
+Abehav
+R52
+R70
+R71
+R41
+R42
+R23
+R2
+R60
+R61
+R3
+R4
+R5
+R6
+R7
+R72
+R8
+Z75 DEx4 work 9 testbench 0 22 lUN2Ta6?l=^:omBQ=WYAd0
+l288
+L56
+Z76 VQa=@^n8d@T7c>Lb2VjY353
+Z77 !s100 NJ;c9`53e_O[3JaN[gRQ;2
+R12
+31
+Z78 Mx16 4 ieee 14 std_logic_1164
+Z79 Mx15 7 gaisler 7 libdcom
+Z80 Mx14 5 grlib 4 amba
+Z81 Mx13 4 ieee 11 numeric_std
+Z82 Mx12 3 std 6 textio
+Z83 Mx11 5 grlib 6 stdlib
+Z84 Mx10 5 grlib 7 version
+Z85 Mx9 7 gaisler 4 uart
+Z86 Mx8 7 gaisler 4 misc
+Z87 Mx7 5 grlib 7 devices
+Z88 Mx6 7 techmap 7 gencomp
+Z89 Mx5 7 gaisler 3 sim
+Z90 Mx4 5 grlib 5 stdio
+Z91 Mx3 6 micron 10 components
+Z92 Mx2 4 work 5 debug
+Z93 Mx1 4 work 6 config
+R13
+R14
+Evga_clkgen
+Z94 w1288866864
+R66
+R3
+R4
+R5
+R6
+R7
+R23
+Z95 DEx6 unisim 4 bufg 0 22 ^9QSo3;heb>cDJ]knz4<^0
+R8
+R9
+Z96 8vga_clkgen.vhd
+Z97 Fvga_clkgen.vhd
+l0
+L31
+V=fa<f?_N_>cE?N26f`IfJ1
+R12
+31
+R13
+R14
+!s100 JRMGOBCnZdgefSYVPF<=22
+Astruct
+R66
+R3
+R4
+R5
+R6
+R7
+R23
+R8
+R67
+l46
+L42
+V5j7K4cQC9<Fb[Zz[Mz5=81
+R12
+31
+Z98 Mx8 4 ieee 14 std_logic_1164
+R24
+R17
+R18
+R19
+R20
+R21
+R69
+R13
+R14
+!s100 g=51fKQJiCSfo?^3fONBf3

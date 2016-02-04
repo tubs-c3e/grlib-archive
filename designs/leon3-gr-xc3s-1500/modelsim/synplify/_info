@@ -1,0 +1,203 @@
+m255
+K3
+13
+cModel Technology
+Z0 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+Pattributes
+Z1 DPx4 ieee 14 std_logic_1164 0 22 GH1=`jDDBJ=`LM;:Ak`kf2
+Z2 w1288866865
+Z3 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+8../../lib/synplify/sim/synattr.vhd
+F../../lib/synplify/sim/synattr.vhd
+l0
+L47
+VUQamLGMko[jWNgNoij2M51
+!s100 z04U2<izTe3FTQnizc[7=3
+Z4 OE;C;6.6c;45
+31
+Z5 Mx1 4 ieee 14 std_logic_1164
+Z6 o-quiet -explicit -93 -work synplify
+Z7 tShow_source 1 Show_Warning1 0 Show_Warning5 0 Quiet 1
+Pcomponents
+R1
+R2
+R3
+Z8 8../../lib/synplify/sim/synplify.vhd
+Z9 F../../lib/synplify/sim/synplify.vhd
+l0
+L267
+VzkR^RVj=TJK>aE>E0]V<f0
+R4
+31
+R5
+R6
+R7
+!s100 =QN8UDai1Idd7FQ9OF@c50
+Eprim_counter
+R2
+R1
+R3
+R8
+R9
+l0
+L16
+VT=BlO]K;gZLWJ?FaQ^Q3F3
+R4
+31
+R6
+R7
+!s100 BdBIo]M1G_B;9fe]9nZ@c1
+Abeh
+R1
+DEx4 work 12 prim_counter 0 22 T=BlO]K;gZLWJ?FaQ^Q3F3
+l33
+L31
+VFjGL^mY`^m7^V`HcF]zd`2
+!s100 =V`U<hATTGfEnzWaFNH^M1
+R4
+31
+R5
+R6
+R7
+Eprim_dff
+R2
+R1
+R3
+R8
+R9
+l0
+L61
+V=m;mBD9?fc>SU<G07B3Th3
+R4
+31
+R6
+R7
+!s100 ;B6iTRE_=OA8z`hY__P920
+Abeh
+R1
+DEx4 work 8 prim_dff 0 22 =m;mBD9?fc>SU<G07B3Th3
+l70
+L69
+VQ0aNnCXRV2[g_VQ@=@3bU3
+!s100 mb3zE_8ZGVON_EaXflRM[3
+R4
+31
+R5
+R6
+R7
+Eprim_latch
+R2
+R1
+R3
+R8
+R9
+l0
+L117
+VH[nH526Zc]UGhYLcIm6T63
+R4
+31
+R6
+R7
+!s100 WoWY0B`l04=S4hj7bB0?]0
+Abeh
+R1
+DEx4 work 10 prim_latch 0 22 H[nH526Zc]UGhYLcIm6T63
+l126
+L125
+VTCifoHlDo`cA5M8K8j@IL3
+!s100 V7>OY_Za3QV:;Cma`:Cej2
+R4
+31
+R5
+R6
+R7
+Eprim_ramd
+R2
+Z10 DPx5 grlib 7 version 0 22 5MHSbhTW2<8OSfVV9<Yah0
+Z11 DPx3 std 6 textio 0 22 m2KQDRRhmF833<<DjYdL70
+Z12 DPx4 ieee 11 numeric_std 0 22 =NSdli^?T5OD8;4F<blj<3
+Z13 DPx5 grlib 6 stdlib 0 22 OGV5Co_5hgI]W[EdVOO:m1
+R1
+R3
+R8
+R9
+l0
+L230
+VI5i6HJG_]>jhoP[aGm9GE2
+R4
+31
+R6
+R7
+!s100 >7_BD5e`3D57_[7In9T:93
+Abeh
+R10
+R11
+R12
+R13
+R1
+DEx4 work 9 prim_ramd 0 22 I5i6HJG_]>jhoP[aGm9GE2
+l249
+L243
+VbX?=onzPodXSEN0Lh^IS63
+!s100 8HjIOJXUZ_abeP7e[UYR@2
+R4
+31
+Mx5 4 ieee 14 std_logic_1164
+Mx4 5 grlib 6 stdlib
+Mx3 4 ieee 11 numeric_std
+Z14 Mx2 3 std 6 textio
+Mx1 5 grlib 7 version
+R6
+R7
+Eprim_sdff
+R2
+R1
+R3
+R8
+R9
+l0
+L88
+VN^cNC`fB@bz=aeGDjJUCe3
+R4
+31
+R6
+R7
+!s100 Qh7kC6`IgLYF<VEXFS2ZJ0
+Abeh
+R1
+DEx4 work 9 prim_sdff 0 22 N^cNC`fB@bz=aeGDjJUCe3
+l98
+L96
+Vb]hAgbkRo4_deGQ=?1:613
+!s100 CO9W8lAK8^cQW2J6zMza<0
+R4
+31
+R5
+R6
+R7
+Ezeroohm1
+R2
+R1
+R3
+R8
+R9
+l0
+L190
+VJz@]Pn[EjPCX:9a==V3Mg0
+R4
+31
+R6
+R7
+!s100 MPZh1LiVaPKhK>8GHdi7I0
+Azeroohm1_a
+R1
+DEx4 work 8 zeroohm1 0 22 Jz@]Pn[EjPCX:9a==V3Mg0
+l203
+L198
+Vb7E6SC9:m^D0;3LWdCn5@0
+!s100 5=2E:7b2H<TYYHK>bEKgX2
+R4
+31
+R5
+R6
+R7

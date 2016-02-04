@@ -1,0 +1,63 @@
+m255
+K3
+13
+cModel Technology
+Z0 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+Pdw02_components
+Z1 DPx4 ieee 15 std_logic_arith 0 22 GJbAT?7@hRQU9IQ702DT]2
+Z2 DPx4 ieee 14 std_logic_1164 0 22 GH1=`jDDBJ=`LM;:Ak`kf2
+Z3 w1288866870
+Z4 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+Z5 8../../lib/tech/dw02/comp/DW02_components.vhd
+Z6 F../../lib/tech/dw02/comp/DW02_components.vhd
+l0
+L7
+VP9>18R[]cbmh7W7l;:57o2
+!s100 6[T2]]eDc8kYZc4e?U4h<0
+Z7 OE;C;6.6c;45
+31
+Z8 Mx2 4 ieee 14 std_logic_1164
+Z9 Mx1 4 ieee 15 std_logic_arith
+Z10 o-quiet -explicit -93 -work dw02
+Z11 tShow_source 1 Show_Warning1 0 Show_Warning5 0 Quiet 1
+Edw02_mult_2_stage
+R3
+Z12 DPx5 grlib 7 version 0 22 5MHSbhTW2<8OSfVV9<Yah0
+Z13 DPx3 std 6 textio 0 22 m2KQDRRhmF833<<DjYdL70
+Z14 DPx4 ieee 11 numeric_std 0 22 =NSdli^?T5OD8;4F<blj<3
+Z15 DPx5 grlib 6 stdlib 0 22 OGV5Co_5hgI]W[EdVOO:m1
+R1
+R2
+R4
+R5
+R6
+l0
+L30
+VDfzd?ibDNAz;`HBekl84B3
+!s100 cjLKdNlK@kCCeD2[7jA6X3
+R7
+31
+R10
+R11
+Abehav
+R12
+R13
+R14
+R15
+R1
+R2
+Z16 DEx4 work 17 dw02_mult_2_stage 0 22 Dfzd?ibDNAz;`HBekl84B3
+l45
+L41
+Z17 VFCS?U>]zlLXR936VRB]iJ2
+Z18 !s100 GFUTn^0WKI3FF_2IaTc@L1
+R7
+31
+Z19 Mx6 4 ieee 14 std_logic_1164
+Z20 Mx5 4 ieee 15 std_logic_arith
+Z21 Mx4 5 grlib 6 stdlib
+Z22 Mx3 4 ieee 11 numeric_std
+Z23 Mx2 3 std 6 textio
+Z24 Mx1 5 grlib 7 version
+R10
+R11

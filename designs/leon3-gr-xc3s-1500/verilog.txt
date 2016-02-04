@@ -1,0 +1,3 @@
+
+../../lib/opencores/spi/simple_spi_top.v
+../../lib/opencores/ac97/ac97_top.v

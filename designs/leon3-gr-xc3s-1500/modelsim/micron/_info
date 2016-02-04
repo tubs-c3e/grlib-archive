@@ -1,0 +1,120 @@
+m255
+K3
+13
+cModel Technology
+Z0 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+Pcomponents
+Z1 DPx3 std 6 textio 0 22 m2KQDRRhmF833<<DjYdL70
+Z2 DPx4 ieee 14 std_logic_1164 0 22 GH1=`jDDBJ=`LM;:Ak`kf2
+Z3 w1288866865
+Z4 d/opt/tools/grlib-gpl-1.0.21-b3848/designs/leon3-gr-xc3s-1500
+8../../lib/micron/sdram/components.vhd
+F../../lib/micron/sdram/components.vhd
+l0
+L25
+VaojzOU1kd4RMN9[>nCbhg2
+Z5 OE;C;6.6c;45
+31
+Z6 Mx2 4 ieee 14 std_logic_1164
+Z7 Mx1 3 std 6 textio
+Z8 o-quiet -explicit -93 -work micron
+Z9 tShow_source 1 Show_Warning1 0 Show_Warning5 0 Quiet 1
+!s100 oKEFOo^f[SG`b@;CgIR^[1
+vmobile_sdr
+IN?d:_<a3]fQR8P03n8QFn1
+VAG67JFI<Z853_@aU_42zg1
+R4
+R3
+8../../lib/micron/sdram/mobile_sdr.v
+F../../lib/micron/sdram/mobile_sdr.v
+L0 70
+Z10 OE;L;6.6c;45
+r1
+31
+o-quiet -work micron
+Z11 tQuiet 1
+!s100 M4PI1WjkzQOSnimdU;;162
+!s85 0
+Emt48lc16m16a2
+R3
+Z12 DPx5 grlib 4 amba 0 22 2[7f3_0GB?S]eMzjCc<d:1
+Z13 DPx5 grlib 5 stdio 0 22 <_FK]jMK>6ZWIBz[<=z<j2
+Z14 DPx7 gaisler 3 sim 0 22 bEogN6OoSBgk9CLoOA=BE1
+Z15 DPx5 grlib 7 version 0 22 5MHSbhTW2<8OSfVV9<Yah0
+Z16 DPx4 ieee 11 numeric_std 0 22 =NSdli^?T5OD8;4F<blj<3
+Z17 DPx5 grlib 6 stdlib 0 22 OGV5Co_5hgI]W[EdVOO:m1
+Z18 DPx4 work 7 mti_pkg 0 22 b;]1ZRoFE79mOZAe5Li1@0
+R2
+R1
+R4
+Z19 8../../lib/micron/sdram/mt48lc16m16a2.vhd
+Z20 F../../lib/micron/sdram/mt48lc16m16a2.vhd
+l0
+L206
+V^HRWDVSeAeI^j7N[HU^Ha2
+!s100 PkfC>1YBhCm00Ie>5mE@L0
+R5
+31
+R8
+R9
+Abehave
+R12
+R13
+R14
+R15
+R16
+R17
+R18
+R2
+R1
+Z21 DEx4 work 13 mt48lc16m16a2 0 22 ^HRWDVSeAeI^j7N[HU^Ha2
+l279
+L253
+Z22 V0KKAQVJDfnNKb0gNfQj=V3
+Z23 !s100 8IAENalgCP4O>o2of5AF90
+R5
+31
+Z24 Mx9 3 std 6 textio
+Z25 Mx8 4 ieee 14 std_logic_1164
+Z26 Mx7 4 work 7 mti_pkg
+Z27 Mx6 5 grlib 6 stdlib
+Z28 Mx5 4 ieee 11 numeric_std
+Z29 Mx4 5 grlib 7 version
+Z30 Mx3 7 gaisler 3 sim
+Z31 Mx2 5 grlib 5 stdio
+Z32 Mx1 5 grlib 4 amba
+R8
+R9
+Pmti_pkg
+R1
+R2
+R3
+R4
+R19
+R20
+l0
+L17
+Vb;]1ZRoFE79mOZAe5Li1@0
+!s100 <[ZI:EznDCUGjf;<RfcU]2
+R5
+31
+b1
+R6
+R7
+R8
+R9
+Bbody
+Z33 DBx4 work 7 mti_pkg 0 22 b;]1ZRoFE79mOZAe5Li1@0
+R1
+R2
+l0
+L28
+Z34 V_?8TIl>ZTm8Vo6mdU^87c3
+Z35 !s100 23?P[_?T]kl47?@a2_NN70
+R5
+31
+R6
+R7
+R8
+R9
+nbody
