@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -121,7 +122,7 @@ begin
   gndv <= (others => '0');
 
   icache0 : mmu_icache 
-    generic map (icen, irepl, isets, ilinesize, isetsize, isetlock, ilram,
+    generic map (memtech, icen, irepl, isets, ilinesize, isetsize, isetlock, ilram,
                  ilramsize, ilramstart,
                  mmuen)
     port map (rst, clk, ici, icol, dci, dcol, mcii, mcio, 
@@ -143,9 +144,9 @@ begin
   -- MMU
   mmugen : if mmuen = 1 generate
     m0 : mmu
-      generic map (memtech, itlbnum, dtlbnum, tlb_type, tlb_rep, mmupgsz, 1)
-      port map (rst, clk, mmudci, mmudco, mmuici, mmuico, mcmmo, mcmmi,
-                gndv(0), gndv(1 downto 0), open);
+      generic map (memtech, itlbnum, dtlbnum, tlb_type, tlb_rep, mmupgsz, memtest_vlen)
+      port map (rst, clk, mmudci, mmudco, mmuici, mmuico, mcmmo, mcmmi, ahbi.testin
+                );
   end generate;
   nommu : if mmuen = 0 generate
     mcmmi <= mci_zero; mmudco <= mmudco_zero; mmuico <= mmuico_zero;

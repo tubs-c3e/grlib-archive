@@ -1,7 +1,5 @@
 
 
-
-
 -----------------------------------------------------------------------------
 -- LEON3 Demonstration design test bench configuration
 -- Copyright (C) 2012 Aeroflex Gaisler
@@ -22,6 +20,7 @@ package config is
   constant CFG_FABTECH : integer := virtex5;
   constant CFG_MEMTECH : integer := virtex5;
   constant CFG_PADTECH : integer := virtex5;
+  constant CFG_TRANSTECH : integer := GTP0;
   constant CFG_NOASYNC : integer := 0;
   constant CFG_SCAN : integer := 0;
 -- Clock generator
@@ -76,8 +75,9 @@ package config is
   constant CFG_TLB_REP : integer := 1;
   constant CFG_MMU_PAGE : integer := 0;
   constant CFG_DSU : integer := 1;
-  constant CFG_ITBSZ : integer := 2;
+  constant CFG_ITBSZ : integer := 2 + 64*0;
   constant CFG_ATBSZ : integer := 2;
+  constant CFG_AHBPF : integer := 0;
   constant CFG_LEON3FT_EN : integer := 0;
   constant CFG_IUFT_EN : integer := 0;
   constant CFG_FPUFT_EN : integer := 0;
@@ -87,6 +87,8 @@ package config is
   constant CFG_LEON3_NETLIST: integer := 0;
   constant CFG_DISAS : integer := 0 + 0;
   constant CFG_PCLOW : integer := 2;
+  constant CFG_NP_ASI : integer := 0;
+  constant CFG_WRPSR : integer := 0;
 -- AMBA settings
   constant CFG_DEFMST : integer := (0);
   constant CFG_RROBIN : integer := 1;
@@ -189,7 +191,7 @@ package config is
   constant CFG_I2C_ENABLE : integer := 1;
 
 -- AMBA Wrapper for Xilinx System Monitor
-  constant CFG_GRSYSMON : integer := 1;
+  constant CFG_GRSYSMON : integer := 0;
 
 -- VGA and PS2/ interface
   constant CFG_KBD_ENABLE : integer := 1;

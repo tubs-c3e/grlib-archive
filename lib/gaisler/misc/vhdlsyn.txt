@@ -34,6 +34,7 @@ grgprbank.vhd
 spi2ahbx.vhd
 spi2ahb.vhd
 spi2ahb_apb.vhd
+grclkgatex.vhd
 grclkgate.vhd
 grclkgate2x.vhd
 grtimer.vhd
@@ -45,3 +46,6 @@ ahbswba.vhd
 ahbswbav.vhd
 ahbmwba.vhd
 irqgen.vhd
+ahbpl.vhd
+ahbpls.vhd
+ahbplm.vhd

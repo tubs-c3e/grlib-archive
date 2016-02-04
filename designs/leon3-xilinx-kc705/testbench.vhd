@@ -5,6 +5,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -312,9 +313,9 @@ begin
        phy_txctl_txen  => phy_txctl_txen,
        --phy_txclk       => phy_txclk,
        --phy_rxer        => phy_rxer,
-       phy_rxd         => phy_rxd(3 downto 0),
-       phy_rxctl_rxdv  => phy_rxctl_rxdv,
-       phy_rxclk       => phy_rxclk'delayed(1 ns),
+       phy_rxd         => phy_rxd(3 downto 0)'delayed(2 ns),
+       phy_rxctl_rxdv  => phy_rxctl_rxdv'delayed(2 ns),
+       phy_rxclk       => phy_rxclk,
        phy_reset       => phy_reset,
        phy_mdio        => phy_mdio,
        phy_mdc         => phy_mdc,
@@ -329,7 +330,7 @@ begin
 
   -- Memory Models instantiations
   gen_mem_model : if (USE_MIG_INTERFACE_MODEL /= true) generate
-   ddr3mem : if (CFG_MIG_SERIES7 = 1) generate
+   ddr3mem : if (CFG_MIG_7SERIES = 1) generate
      u1 : ddr3ram
        generic map (
          width     => 64,
@@ -406,7 +407,9 @@ begin
    iuerr : process
    begin
      wait for 210 us; -- This is for proper DDR3 behaviour durign init phase not needed durin simulation
-     wait on led(3);  -- DDR3 Memory Init ready
+     if (USE_MIG_INTERFACE_MODEL /= true) then
+       wait on led(3);  -- DDR3 Memory Init ready
+     end if;
      wait for 5000 ns;
      if to_x01(errorn) = '1' then wait on errorn; end if;
      assert (to_x01(errorn) = '1')

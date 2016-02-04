@@ -1,8 +1,6 @@
 
 
 
-
-
 -----------------------------------------------------------------------------
 -- LEON3 Demonstration design test bench configuration
 -- Copyright (C) 2009 Aeroflex Gaisler
@@ -17,6 +15,7 @@ package config is
   constant CFG_FABTECH : integer := spartan6;
   constant CFG_MEMTECH : integer := spartan6;
   constant CFG_PADTECH : integer := spartan6;
+  constant CFG_TRANSTECH : integer := GTP0;
   constant CFG_NOASYNC : integer := 0;
   constant CFG_SCAN : integer := 0;
 -- Clock generator
@@ -71,8 +70,9 @@ package config is
   constant CFG_TLB_REP : integer := 0;
   constant CFG_MMU_PAGE : integer := 0;
   constant CFG_DSU : integer := 1;
-  constant CFG_ITBSZ : integer := 4;
+  constant CFG_ITBSZ : integer := 4 + 64*0;
   constant CFG_ATBSZ : integer := 4;
+  constant CFG_AHBPF : integer := 0;
   constant CFG_LEON3FT_EN : integer := 0;
   constant CFG_IUFT_EN : integer := 0;
   constant CFG_FPUFT_EN : integer := 0;
@@ -82,6 +82,8 @@ package config is
   constant CFG_LEON3_NETLIST: integer := 0;
   constant CFG_DISAS : integer := 0 + 0;
   constant CFG_PCLOW : integer := 2;
+  constant CFG_NP_ASI : integer := 0;
+  constant CFG_WRPSR : integer := 0;
 -- AMBA settings
   constant CFG_DEFMST : integer := (0);
   constant CFG_RROBIN : integer := 1;
@@ -185,13 +187,13 @@ package config is
 
 -- Modular timer
   constant CFG_GPT_ENABLE : integer := 1;
-  constant CFG_GPT_NTIM : integer := (3);
+  constant CFG_GPT_NTIM : integer := (2);
   constant CFG_GPT_SW : integer := (8);
   constant CFG_GPT_TW : integer := (32);
   constant CFG_GPT_IRQ : integer := (8);
   constant CFG_GPT_SEPIRQ : integer := 1;
-  constant CFG_GPT_WDOGEN : integer := 1;
-  constant CFG_GPT_WDOG : integer := 16#FFFF#;
+  constant CFG_GPT_WDOGEN : integer := 0;
+  constant CFG_GPT_WDOG : integer := 16#0#;
 
 -- GPIO port
   constant CFG_GRGPIO_ENABLE : integer := 1;

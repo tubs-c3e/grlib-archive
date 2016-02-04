@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -44,17 +45,15 @@ entity syncrambw is
     dataout : out std_logic_vector (dbits-1 downto 0);
     enable  : in  std_logic_vector (dbits/8-1 downto 0);
     write   : in  std_logic_vector (dbits/8-1 downto 0);
-    testin  : in  std_logic_vector (TESTIN_WIDTH-1 downto 0) := testin_none;
-    customclk: in std_ulogic := '0';
-    customin : in std_logic_vector((dbits/8)*custombits-1 downto 0) := (others => '0');
-    customout:out std_logic_vector((dbits/8)*custombits-1 downto 0));
+    testin  : in  std_logic_vector (TESTIN_WIDTH-1 downto 0) := testin_none
+    );
 end;
 
 architecture rtl of syncrambw is
 
   constant nctrl : integer := abits + (TESTIN_WIDTH-2) + 2*dbits/8;
   signal dataoutx, databp, testdata : std_logic_vector((dbits -1) downto 0);
-  constant SCANTESTBP : boolean := (testen = 1) and (tech /= 0) and (tech /= ut90);
+  constant SCANTESTBP : boolean := (testen = 1) and syncram_add_scan_bypass(tech)=1;
 
   signal xenable, xwrite : std_logic_vector(dbits/8-1 downto 0);
   signal custominx,customoutx: std_logic_vector(syncram_customif_maxwidth downto 0);
@@ -98,8 +97,6 @@ begin
          port map (clk, address, datain, dataout, xenable, xwrite);
     end generate;
 
-    customout(customout'high downto custombits) <= (others => '0');
-    customout(custombits-1 downto 0) <= customoutx(custombits-1 downto 0);
     
 -- pragma translate_off
     dmsg : if GRLIB_CONFIG_ARRAY(grlib_debug_level) >= 2 generate
@@ -118,15 +115,13 @@ begin
     rx : for i in 0 to dbits/8-1 generate
       x0 : syncram generic map (tech, abits, 8, testen, custombits)
          port map (clk, address, datain(i*8+7 downto i*8), 
-	    dataoutx(i*8+7 downto i*8), enable(i), write(i), testin,
-                   customclk, customin((i+1)*custombits-1 downto i*custombits),
-                   customout((i+1)*custombits-1 downto i*custombits));
+	    dataoutx(i*8+7 downto i*8), enable(i), write(i), testin
+                   );
     end generate;
     dataout <= dataoutx;
   end generate;
 
-  custominx(custominx'high downto (dbits/8)*custombits) <= (others => '0');
-  custominx((dbits/8)*custombits-1 downto 0) <= customin;
+    custominx <= (others => '0');
 
   nocust: if has_srambw(tech)=0 or syncram_has_customif(tech)=0 generate
     customoutx <= (others => '0');

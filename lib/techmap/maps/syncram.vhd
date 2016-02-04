@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -42,20 +43,19 @@ entity syncram is
     dataout  : out std_logic_vector((dbits -1) downto 0);
     enable   : in std_ulogic;
     write    : in std_ulogic;
-    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none;
-    customclk: in std_ulogic := '0';
-    customin : in std_logic_vector(custombits-1 downto 0) := (others => '0');
-    customout:out std_logic_vector(custombits-1 downto 0));
+    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none
+    );
 end;
 
 architecture rtl of syncram is
   constant nctrl : integer := abits + (TESTIN_WIDTH-2) + 2;
   signal rena, wena : std_logic;
   signal dataoutx, databp, testdata : std_logic_vector((dbits -1) downto 0);
-  constant SCANTESTBP : boolean := (testen = 1) and (tech /= 0) and (tech /= ut90);
+  constant SCANTESTBP : boolean := (testen = 1) and syncram_add_scan_bypass(tech)=1;
   signal xenable, xwrite: std_ulogic;
 
   signal custominx,customoutx: std_logic_vector(syncram_customif_maxwidth downto 0);
+  signal customclkx: std_ulogic;
 
 begin
 
@@ -88,15 +88,14 @@ begin
     end generate;
   end generate;
 
-  custominx(custominx'high downto custombits) <= (others => '0');
-  custominx(custombits-1 downto 0) <= customin;
-  customout <= customoutx(custombits-1 downto 0);
+    custominx <= (others => '0');
+    customclkx <= '0';
 
   nocust: if syncram_has_customif(tech)=0 generate
     customoutx <= (others => '0');
   end generate;
 
-  noscanbp : if not SCANTESTBP generate dataout <= dataoutx; end generate;
+    noscanbp : if not SCANTESTBP generate dataout <= dataoutx; end generate;
 
   inf : if tech = inferred generate
     x0 : generic_syncram generic map (abits, dbits)
@@ -134,6 +133,11 @@ begin
          port map (clk, address, datain, dataoutx, xenable, xwrite);
   end generate;
 
+  igl2 : if tech = igloo2 generate
+    x0 : igloo2_syncram generic map (abits, dbits)
+         port map (clk, address, datain, dataoutx, xenable, xwrite);
+  end generate;
+
   umc18  : if tech = umc generate
     x0 : umc_syncram generic map (abits, dbits)
          port map (clk, address, datain, dataoutx, xenable, xwrite);
@@ -147,6 +151,17 @@ begin
   saed : if tech = saed32 generate
     x0 : saed32_syncram generic map (abits, dbits)
          port map (clk, address, datain, dataoutx, xenable, xwrite);
+  end generate;
+
+  rhs : if tech = rhs65 generate
+    x0 : rhs65_syncram generic map (abits, dbits)
+         port map (clk, address, datain, dataoutx, enable, write,
+                   testin(TESTIN_WIDTH-8),testin(TESTIN_WIDTH-3),
+                   custominx(0),customoutx(0),
+                   testin(TESTIN_WIDTH-4),testin(TESTIN_WIDTH-5),testin(TESTIN_WIDTH-6),
+                   customclkx,testin(TESTIN_WIDTH-7),'0',
+                   customoutx(1), customoutx(7 downto 2));
+    customoutx(customoutx'high downto 8) <= (others => '0');
   end generate;
 
   dar  : if tech = dare generate
@@ -291,6 +306,26 @@ begin
       severity note;
       wait;
     end process;
+  end generate;
+  chk : if GRLIB_CONFIG_ARRAY(grlib_syncram_selftest_enable) /= 0 generate
+    chkblk: block
+      signal refdo: std_logic_vector(dbits-1 downto 0);
+      signal pren: std_ulogic;
+      signal paddr: std_logic_vector(abits-1 downto 0);
+    begin
+      refram : generic_syncram generic map (abits, dbits)
+        port map (clk, address, datain, refdo, write);
+      p: process(clk)
+      begin
+        if rising_edge(clk) then
+          assert pren/='1' or refdo=dataoutx or is_x(refdo) or is_x(paddr)
+            report "Read mismatch addr=" & tost(paddr) & " impl=" & tost(dataoutx) & " ref=" & tost(refdo)
+            severity error;
+          pren <= enable and not write;
+          paddr <= address;
+        end if;
+      end process;
+    end block;
   end generate;
 -- pragma translate_on
 end;

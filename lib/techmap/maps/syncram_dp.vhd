@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -49,10 +50,8 @@ entity syncram_dp is
     dataout2 : out std_logic_vector((dbits -1) downto 0);
     enable2  : in std_ulogic;
     write2   : in std_ulogic;
-    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none;
-    customclk: in std_ulogic := '0';
-    customin : in std_logic_vector(custombits-1 downto 0) := (others => '0');
-    customout:out std_logic_vector(custombits-1 downto 0));
+    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none
+    );
 end;
 
 architecture rtl of syncram_dp is
@@ -87,9 +86,8 @@ begin
 
 -- pragma translate_on
 
-  custominx(custominx'high downto custombits) <= (others => '0');
-  custominx(custombits-1 downto 0) <= customin;
-  customout <= customoutx(custombits-1 downto 0);
+    custominx <= (others => '0');
+
   nocust: if syncram_has_customif(tech)=0 generate
     customoutx <= (others => '0');
   end generate;
@@ -136,8 +134,20 @@ begin
                    clk2, address2, datain2, dataout2, xenable2, xwrite2);
   end generate;
 
+  igl2  : if tech = igloo2 generate
+    x0 : igloo2_syncram_dp generic map (abits, dbits)
+         port map (clk1, address1, datain1, dataout1, xenable1, xwrite1,
+                   clk2, address2, datain2, dataout2, xenable2, xwrite2);
+  end generate;
+
   saed  : if tech = saed32 generate
     x0 : saed32_syncram_dp generic map (abits, dbits)
+         port map (clk1, address1, datain1, dataout1, xenable1, xwrite1,
+                   clk2, address2, datain2, dataout2, xenable2, xwrite2);
+  end generate;
+
+  rhs  : if tech = rhs65 generate
+    x0 : rhs65_syncram_dp generic map (abits, dbits)
          port map (clk1, address1, datain1, dataout1, xenable1, xwrite1,
                    clk2, address2, datain2, dataout2, xenable2, xwrite2);
   end generate;

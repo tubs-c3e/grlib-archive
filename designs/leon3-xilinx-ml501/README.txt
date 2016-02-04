@@ -37,13 +37,13 @@ Design specifics:
 
    make xconfig   (select MIG, deselect DDR2SPA)
    make distclean install-secureip mig
-   make vsim
+   make sim
    
    The MIG memory parameters can be changed in of ahb2mig_ml50x.vhd,
    without having to regenerate the MIG itself. The default settings
    are compatible with the provided 256 Mbyte SODIMM.
 
-   It is essential to use ISE 13.4. MIG generation is not supported
+   It is essential to use ISE 14.7. MIG generation is not supported
    for any other ISE version in this design.
 
 * The SSRAM can be interfaced with the LEON2 Memory controller. 

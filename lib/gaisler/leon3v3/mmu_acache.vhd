@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -164,7 +165,6 @@ begin
     hlock := '0'; 
     hburst := (others => '0'); 
     if ahbi.hready = '1' then v.lb := '0'; end if;
-    if scantest = 1 then scanen := ahbi.scanen; else scanen  := '0'; end if;
     v.retry2 := (r.retry or r.retry2) and not (r.ba and not r.retry);
     vreqmsk := orv(r2.reqmsk);
 
@@ -365,10 +365,6 @@ begin
     mcmmo.retry   <= mmretry;
     mcmmo.werr    <= r.werr;
     mcmmo.cache   <= mmhcache;
- 
-    mcio.scanen  <= scanen;
-    mcdo.scanen  <= scanen;
-    mcdo.testen  <= ahbi.testen;
 
     rin <= v; r2in <= v2;
 

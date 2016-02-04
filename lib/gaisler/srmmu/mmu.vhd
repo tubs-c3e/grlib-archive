@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -44,6 +45,7 @@ entity mmu is
     tlb_type  : integer range 0 to 3 := 1;
     tlb_rep   : integer range 0 to 1 := 0;
     mmupgsz   : integer range 0 to 5  := 0;
+    scantest  : integer := 0;
     ramcbits  : integer := 1
     );
   port (
@@ -59,9 +61,7 @@ entity mmu is
     mcmmo  : in  memory_mm_out_type;
     mcmmi  : out memory_mm_in_type;
 
-    ramcclk : in  std_ulogic := '0';
-    ramcin  : in  std_logic_vector(2*ramcbits-1 downto 0) := (others => '0');
-    ramcout : out std_logic_vector(2*ramcbits-1 downto 0)
+    testin  : in  std_logic_vector(TESTIN_WIDTH-1 downto 0)
     );
 end mmu;
 
@@ -111,6 +111,7 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
   end record;
 
   constant RESET_ALL : boolean := GRLIB_CONFIG_ARRAY(grlib_sync_reset_enable_all) = 1;
+  constant ASYNC_RESET : boolean := GRLIB_CONFIG_ARRAY(grlib_async_reset_enable) = 1;
   constant RRES : mmu_rtype := (
     cmb_s1    =>  mmu_cmbpctrl_none,
     cmb_s2    =>  mmu_cmbpctrl_none,
@@ -133,6 +134,7 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
       tlb_type  : integer range 0 to 3 := 1;
       tlb_rep   : integer range 0 to 1 := 0;
       mmupgsz   : integer range 0 to 5  := 0;
+      scantest  : integer := 0;
       ramcbits  : integer := 1
       );
     port (
@@ -142,9 +144,7 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
       tlbo  : out mmutlb_out_type;
       two  : in mmutw_out_type;
       twi  : out mmutw_in_type;
-      ramcclk: in std_ulogic;
-      ramcin : in std_logic_vector(ramcbits-1 downto 0);
-      ramcout: out std_logic_vector(ramcbits-1 downto 0)
+      testin : in std_logic_vector(TESTIN_WIDTH-1 downto 0)
       );
   end component;
   signal tlbi_a0 : mmutlb_in_type;
@@ -174,17 +174,28 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
   signal mmctrl1 : mmctrl_type1;
     
 begin  
-    
-  p1: process (clk)
-  begin
-    if rising_edge(clk) then
-      r <= c;
-      if RESET_ALL and (rst = '0') then
-        r <= RRES;
+
+  syncrregs : if not ASYNC_RESET generate
+    p1: process (clk)
+    begin
+      if rising_edge(clk) then
+        r <= c;
+        if RESET_ALL and (rst = '0') then
+          r <= RRES;
+        end if;
       end if;
-    end if;
-  end process p1;
-  
+    end process p1;
+  end generate;
+  asyncrregs : if ASYNC_RESET generate
+    p1: process (clk, rst)
+    begin
+      if rst = '0' then
+        r <= RRES;
+      elsif rising_edge(clk) then
+        r <= c;
+      end if;
+    end process p1;
+  end generate;
 
   p0: process (rst, r, mmudci, mmuici, mcmmo, tlbo_a0, tlbo_a1, tlbi_a0, tlbi_a1, two_a, twi_a, two)
     variable cmbtlbin     : mmuidc_data_in_type;
@@ -468,11 +479,20 @@ begin
     if (mmudci.fsread) = '1' then
       v.mmctrl2.valid := '0'; v.mmctrl2.fs.fav := '0';
     end if;
-    
+
+    -- SRMMU Fault Priorities
+    -- Pri            Error
+    -------------------------
+    -- 1            Internal error
+    -- 2            Translation error
+    -- 3            Invalid address error
+    -- 4            Privilege violation error
+    -- 5            Protection error
+    -- 6            Access bus error
     if (fault.fault_mexc) = '1' then
       fs.ft := FS_FT_TRANS;
     elsif (fault.fault_trans) = '1' then
-      fs.ft := FS_FT_INV;
+      fs.ft := FS_FT_TRANS;
     elsif (fault.fault_inv) = '1' then
       fs.ft := FS_FT_INV;
     elsif (fault.fault_pri) = '1' then
@@ -507,18 +527,22 @@ begin
         fault.fault_access) = '1' then
             
       --# priority
+      -- 
       if v.mmctrl2.valid = '1'then
         if (fault.fault_mexc) = '1' then
           v.mmctrl2.fs := fs;
           v.mmctrl2.fa := fa;
         else
-          if (r.mmctrl2.fs.ft /= FS_FT_INV) then
+          -- An instruction or data access fault may not overwrite a
+          -- translation table access fault.
+          if (r.mmctrl2.fs.ft /= FS_FT_TRANS) then
             if fault.fault_isid = id_dcache then
-            -- dcache
+            -- dcache, overwrite bit is cleared
               v.mmctrl2.fs := fs;
               v.mmctrl2.fa := fa;
             else
             -- icache
+            -- an inst access fault may not overwrite a data access fault:
               if (not r.mmctrl2.fs.at_id) = '0' then
                 fs.ow := '1';
                 v.mmctrl2.fs := fs;
@@ -543,7 +567,7 @@ begin
     end if;
     
     -- # reset
-    if ( not RESET_ALL ) and ( rst = '0' ) then
+    if (not ASYNC_RESET) and ( not RESET_ALL ) and ( rst = '0' ) then
       if M_TLB_TYPE = 0 then
         v.splt_is1.tlbactive := RRES.splt_is1.tlbactive;
         v.splt_is2.tlbactive := RRES.splt_is2.tlbactive;
@@ -593,8 +617,6 @@ begin
       tlbi_a0.mmctrl1   <= mmudci.mmctrl1;
       tlbi_a0.wb_op     <= '0';
     end if;
-    tlbi_a0.testin <= mmudci.testin;
-    tlbi_a1.testin <= mmudci.testin;
 
     mmudco.transdata <= mmudco_transdata;
     mmuico.transdata <= mmuico_transdata;
@@ -616,24 +638,23 @@ begin
   tlbcomb0: if M_TLB_TYPE = 1 generate
     -- i/d tlb
     ctlb0 : mmutlb
-      generic map ( tech, M_ENT_C, 0, tlb_rep, mmupgsz, ramcbits )
-      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0),
-                ramcclk, ramcin(ramcbits-1 downto 0), ramcout(ramcbits-1 downto 0));
+      generic map ( tech, M_ENT_C, 0, tlb_rep, mmupgsz, scantest, ramcbits )
+      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0), testin
+                );
       mmudco.tlbmiss   <= twi_a(0).tlbmiss;
-      ramcout(2*ramcbits-1 downto ramcbits) <= (others => '0');
   end generate tlbcomb0;
 
   tlbsplit0: if M_TLB_TYPE = 0 generate
     -- i tlb
     itlb0 : mmutlb
-      generic map ( tech, M_ENT_I, 0, tlb_rep, mmupgsz, ramcbits )
-      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0),
-                ramcclk, ramcin(ramcbits-1 downto 0), ramcout(ramcbits-1 downto 0));
+      generic map ( tech, M_ENT_I, 0, tlb_rep, mmupgsz, scantest, ramcbits )
+      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0), testin
+                );
     -- d tlb
     dtlb0 : mmutlb
-      generic map ( tech, M_ENT_D, tlb_type, tlb_rep, mmupgsz, ramcbits )
-      port map (rst, clk, tlbi_a1, tlbo_a1, two_a(1), twi_a(1),
-                ramcclk, ramcin(2*ramcbits-1 downto ramcbits), ramcout(2*ramcbits-1 downto ramcbits));
+      generic map ( tech, M_ENT_D, tlb_type, tlb_rep, mmupgsz, scantest, ramcbits )
+      port map (rst, clk, tlbi_a1, tlbo_a1, two_a(1), twi_a(1), testin
+                );
       mmudco.tlbmiss   <= twi_a(1).tlbmiss;
   end generate tlbsplit0;
 

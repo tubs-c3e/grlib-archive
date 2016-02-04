@@ -24,6 +24,7 @@ mainmenu_option next_comment
 endmenu
 
 source lib/gaisler/leon3/leon3.in
+source lib/gaisler/l2cache/l2c.in
 source lib/grlib/amba/amba.in
 
 mainmenu_option next_comment
@@ -40,8 +41,7 @@ comment 'Peripherals             '
   mainmenu_option next_comment
   comment 'Memory controller             '
     source lib/esa/memoryctrl/mctrl.in
-    source lib/gaisler/ddr/mig.in
-    source lib/gaisler/ddr/mig_series7.in
+    source lib/gaisler/ddr/mig_7series.in
     source lib/gaisler/misc/ahbstat.in
   endmenu
 
@@ -94,6 +94,11 @@ comment 'Peripherals             '
   comment 'SPI'
     source lib/gaisler/spi/spimctrl.in
     source lib/gaisler/spi/spictrl.in
+  endmenu
+
+  mainmenu_option next_comment
+  comment 'Partial Reconfiguration  '
+    source lib/testgrouppolito/pr/pr.in
   endmenu
 
 endmenu

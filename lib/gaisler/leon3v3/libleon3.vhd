@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -78,7 +79,7 @@ package libleon3 is
       tlb_rep    :     integer range 0 to 1     := 0;
       lddel      :     integer range 1 to 2     := 2;
       disas      :     integer range 0 to 2     := 0;
-      tbuf       :     integer range 0 to 64    := 0;
+      tbuf       :     integer range 0 to 128    := 0;
       pwd        :     integer range 0 to 2     := 0;  -- power-down
       svt        :     integer range 0 to 1     := 0;  -- single-vector trapping
       rstaddr    :     integer                  := 0;
@@ -87,7 +88,9 @@ package libleon3 is
       clk2x      :     integer                  := 0;
       scantest   :     integer                  := 0;
       mmupgsz    :     integer range 0 to 5     := 0;
-      bp         :     integer                  := 1
+      bp         :     integer                  := 1;
+      npasi      :     integer range 0 to 1     := 0;
+      pwrpsr     :     integer range 0 to 1     := 0
       );
     port (
       clk        : in  std_ulogic;
@@ -103,6 +106,8 @@ package libleon3 is
       cramo      : in  cram_out_type;
       tbi        : out tracebuf_in_type;
       tbo        : in  tracebuf_out_type;
+      tbi_2p     : out tracebuf_2p_in_type;
+      tbo_2p     : in  tracebuf_2p_out_type;
       fpi        : out fpc_in_type;
       fpo        : in  fpc_out_type;
       cpi        : out fpc_in_type;
@@ -125,32 +130,17 @@ package libleon3 is
       dsu     :     integer range 0 to 1 := 0;
       disas   :     integer range 0 to 2 := 0;
       netlist :     integer              := 0;
-      index   :     integer              := 0);
+      index   :     integer              := 0;
+      scantest:     integer              := 0);
     port (
       rst     : in  std_ulogic;         -- Reset
       clk     : in  std_ulogic;
       holdn   : in  std_ulogic;         -- pipeline hold
       cpi     : in  fpc_in_type;
-      cpo     : out fpc_out_type
+      cpo     : out fpc_out_type;
+      testin  : in  std_logic_vector(TESTIN_WIDTH-1 downto 0)
       );
   end component;
-
-  component mfpwx
-    generic (
-      tech  :     integer              := 0;
-      pclow :     integer range 0 to 2 := 2;
-      dsu   :     integer range 0 to 1 := 0;
-      disas :     integer range 0 to 2 := 0;
-      rfft  :     integer range 0 to 2 := 0);  -- 0 - no protection, 1 - parity                               
-    port (
-      rst   : in  std_ulogic;           -- Reset
-      clk   : in  std_ulogic;
-      holdn : in  std_ulogic;           -- pipeline hold
-      cpi   : in  fpc_in_type;
-      cpo   : out fpc_out_type
-      );
-  end component;
-
 
   component grlfpwx
     generic (
@@ -160,14 +150,16 @@ package libleon3 is
       disas   :     integer range 0 to 2 := 0;
       pipe    :     integer              := 0;
       netlist :     integer              := 0;
-      index   :     integer              := 0
+      index   :     integer              := 0;
+      scantest:     integer              := 0
       );
     port (
       rst   : in  std_ulogic;           -- Reset
       clk   : in  std_ulogic;
       holdn : in  std_ulogic;           -- pipeline hold
       cpi   : in  fpc_in_type;
-      cpo   : out fpc_out_type
+      cpo   : out fpc_out_type;
+      testin: in  std_logic_vector(TESTIN_WIDTH-1 downto 0)
       );
   end component;
 
@@ -192,7 +184,8 @@ package libleon3 is
       raddr2  : in  std_logic_vector((abits -1) downto 0);
       re2     : in  std_ulogic;
       rdata2  : out std_logic_vector((dbits -1) downto 0);
-      testin  : in  std_logic_vector(3 downto 0) := "0000");
+      testin  : in  std_logic_vector(TESTIN_WIDTH-1 downto 0)
+      );
   end component;
 
 end;

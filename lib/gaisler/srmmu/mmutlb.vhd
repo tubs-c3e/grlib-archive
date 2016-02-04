@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -44,6 +45,7 @@ entity mmutlb is
     tlb_type  : integer range 0 to 3 := 1;
     tlb_rep  : integer range 0 to 1 := 1;
     mmupgsz   : integer range 0 to 5  := 0;
+    scantest  : integer := 0;
     ramcbits: integer := 1
   );
   port (
@@ -53,9 +55,7 @@ entity mmutlb is
     tlbo  : out mmutlb_out_type;
     two   : in  mmutw_out_type;
     twi   : out mmutw_in_type;
-    ramcclk: in std_ulogic;
-    ramcin : in std_logic_vector(ramcbits-1 downto 0);
-    ramcout: out std_logic_vector(ramcbits-1 downto 0)
+    testin : in std_logic_vector(TESTIN_WIDTH-1 downto 0)
     );
 end mmutlb;
 
@@ -93,6 +93,7 @@ architecture rtl of mmutlb is
   end record;
   
   constant RESET_ALL : boolean := GRLIB_CONFIG_ARRAY(grlib_sync_reset_enable_all) = 1;
+  constant ASYNC_RESET : boolean := GRLIB_CONFIG_ARRAY(grlib_async_reset_enable) = 1;
   constant RRES : tlb_rtype := (
     s2_tlbstate    => idle,
     s2_entry       => (others => '0'),
@@ -505,7 +506,6 @@ begin
     
     transdata.cache := CAC;
 
-    --# fault, todo: should we flush on a fault?
     TLB_CheckFault( ACC, r.s2_isid, r.s2_su, r.s2_read, fault_pro, fault_pri );
       
     fault.fault_pro    := '0';
@@ -536,7 +536,6 @@ begin
 
       TLB_MergeData( mmupgsz, tlbi.mmctrl1, wb_LVL, wb_PTE, tlbi.transdata.data, wb_transdata.data );
 
-      --# fault, todo: should we flush on a fault?
       TLB_CheckFault( wb_ACC, tlbi.transdata.isid, tlbi.transdata.su, tlbi.transdata.read, wb_fault_pro, wb_fault_pri );
 
       wb_transdata.accexc :=  wb_fault_pro or wb_fault_pri or wb_WBNEEDSYNC or (not cam_hit_all);
@@ -547,7 +546,7 @@ begin
     TLB_MergeData( mmupgsz, tlbi.mmctrl1, LVL, PTE, r.s2_data, transdata.data );
     
     --# reset
-    if (not RESET_ALL) and (rst = '0') then
+    if (not ASYNC_RESET) and (not RESET_ALL) and (rst = '0') then
       v.s2_flush := '0';
       v.s2_tlbstate := idle;
       if tlb_rep = 1 then
@@ -642,15 +641,27 @@ begin
   end process p0;
 
 
-  p1: process (clk)
-  begin
-    if rising_edge(clk) then
-      r <= c;
-      if RESET_ALL and (rst = '0') then
-        r <= RRES;
+  syncrregs : if not ASYNC_RESET generate
+    p1: process (clk)
+    begin
+      if rising_edge(clk) then
+        r <= c;
+        if RESET_ALL and (rst = '0') then
+          r <= RRES;
+        end if;
       end if;
-    end if;
-  end process p1;
+    end process p1;
+  end generate;
+  asyncrregs : if ASYNC_RESET generate
+    p1: process (clk, rst)
+    begin
+      if rst = '0' then
+        r <= RRES;
+      elsif rising_edge(clk) then
+        r <= c;
+      end if;
+    end process p1;
+  end generate;
 
   -- tag-cam tlb entries
   tlbcam0: for i in entries-1 downto 0 generate
@@ -661,9 +672,10 @@ begin
 
   -- data-ram syncram 
   dataram : syncram
-    generic map ( tech => tech, dbits => 30, abits => entries_log, custombits => ramcbits)
+    generic map ( tech => tech, dbits => 30, abits => entries_log, testen => scantest, custombits => ramcbits)
     port map ( clk, dr1_addr, dr1_datain, dr1_dataout, dr1_enable, dr1_write,
-               tlbi.testin, ramcclk, ramcin, ramcout );
+               testin
+               );
 
   -- lru
   lru0: if tlb_rep = 0 generate

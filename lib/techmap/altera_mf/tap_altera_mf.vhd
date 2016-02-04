@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -57,8 +58,8 @@ architecture rtl of altera_tap is
  		--lpm_type	:	string := "sld_virtual_jtag";
  		sld_auto_instance_index	:	string := "NO";
  		sld_instance_index	:	natural := 0;
- 		sld_ir_width	:	natural := 1;
- 		sld_sim_action	:	string := "UNUSED"
+ 		sld_ir_width	:	natural := 1
+ 		--sld_sim_action	:	string := "UNUSED"
  		--sld_sim_n_scan	:	natural := 0;
  		--sld_sim_total_length	:	natural := 0
                 );

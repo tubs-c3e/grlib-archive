@@ -2,6 +2,7 @@
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
 --  Copyright (C) 2008 - 2014, Aeroflex Gaisler
+--  Copyright (C) 2015, Cobham Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -47,10 +48,8 @@ entity syncram_2pbw is
     write    : in std_logic_vector((dbits/8-1) downto 0);
     waddress : in std_logic_vector((abits-1) downto 0);
     datain   : in std_logic_vector((dbits-1) downto 0);
-    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none;
-    customclk: in std_ulogic := '0';
-    customin : in std_logic_vector((dbits/8)*custombits-1 downto 0) := (others => '0');
-    customout:out std_logic_vector((dbits/8)*custombits-1 downto 0));
+    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none
+    );
 end;
 
 architecture rtl of syncram_2pbw is
@@ -60,7 +59,7 @@ architecture rtl of syncram_2pbw is
   signal dataoutx  : std_logic_vector((dbits -1) downto 0);
   signal databp, testdata : std_logic_vector((dbits -1) downto 0);
   signal renable2 : std_logic_vector((dbits/8-1) downto 0);
-  constant SCANTESTBP : boolean := (testen = 1) and (tech /= 0) and (tech /= ut90);
+  constant SCANTESTBP : boolean := (testen = 1) and syncram_add_scan_bypass(tech)=1;
   constant iwrfst : integer := (1-syncram_2p_write_through(tech)) * wrfst;
 
   signal xrenable,xwrite : std_logic_vector(dbits/8-1 downto 0);
@@ -161,15 +160,10 @@ begin
       end generate;
     end generate wrfst_gen;
   
-  custominx(custominx'high downto custombits) <= (others => '0');
-  custominx(custombits-1 downto 0) <= customin;
-
+    custominx <= (others => '0');
+    
   nocust: if has_sram_2pbw(tech)=0 or syncram_has_customif(tech)=0 generate
     customoutx <= (others => '0');
-  end generate;
-  co0: if has_sram_2pbw(tech)=1 generate
-    customout(custombits-1 downto 0) <= customoutx(custombits-1 downto 0);
-    customout(customout'high downto custombits) <= (others => '0');
   end generate;
 
   n2x : if tech = easic45 generate
@@ -210,9 +204,8 @@ begin
     rx : for i in 0 to dbits/8-1 generate
       x0 : syncram_2p generic map (tech, abits, 8, sepclk, wrfst, testen, words, custombits)
         port map (rclk, renable(i), raddress, dataout(i*8+7 downto i*8), wclk, write(i),
-                  waddress, datain(i*8+7 downto i*8), testin,
-                  customclk, customin((i+1)*custombits-1 downto i*custombits),
-                  customout((i+1)*custombits-1 downto i*custombits));
+                  waddress, datain(i*8+7 downto i*8), testin
+                  );
     end generate;
   end generate;
 
