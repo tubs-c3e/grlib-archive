@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -436,7 +436,7 @@ begin
   end generate;
 
       ahbi_hgrant(0)       <= ahbix.hgrant(hindex);
-      ahbi_hgrant(1 to 15) <= (others => '0');
+      ahbi_hgrant(1 to NAHBMST-1) <= (others => '0');
 
       ahbi_hready       <= ahbix.hready;
       ahbi_hresp        <= ahbix.hresp;

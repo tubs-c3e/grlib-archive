@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -970,6 +970,7 @@ begin
     sdo.odt <= (others => '0');
     sdo.conf <= (others => '0');
     sdo.vcbdrive <= (others => '0');
+    sdo.dqs_gate <= '0';
     sdo.cbdqm <= (others => '0');
     sdo.cbcal_en <= (others => '0');
     sdo.cbcal_inc <= (others => '0');

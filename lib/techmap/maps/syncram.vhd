@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ use work.allmem.all;
 
 entity syncram is
   generic (tech : integer := 0; abits : integer := 6; dbits : integer := 8;
-	testen : integer := 0);
+	testen : integer := 0; custombits: integer := 1);
   port (
     clk      : in std_ulogic;
     address  : in std_logic_vector((abits -1) downto 0);
@@ -42,7 +42,10 @@ entity syncram is
     dataout  : out std_logic_vector((dbits -1) downto 0);
     enable   : in std_ulogic;
     write    : in std_ulogic;
-    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none);
+    testin   : in std_logic_vector(TESTIN_WIDTH-1 downto 0) := testin_none;
+    customclk: in std_ulogic := '0';
+    customin : in std_logic_vector(custombits-1 downto 0) := (others => '0');
+    customout:out std_logic_vector(custombits-1 downto 0));
 end;
 
 architecture rtl of syncram is
@@ -51,6 +54,9 @@ architecture rtl of syncram is
   signal dataoutx, databp, testdata : std_logic_vector((dbits -1) downto 0);
   constant SCANTESTBP : boolean := (testen = 1) and (tech /= 0) and (tech /= ut90);
   signal xenable, xwrite: std_ulogic;
+
+  signal custominx,customoutx: std_logic_vector(syncram_customif_maxwidth downto 0);
+
 begin
 
   xenable <= enable and not testin(TESTIN_WIDTH-2) when testen/=0 else enable;
@@ -80,6 +86,14 @@ begin
       x0: grmux2 generic map (tech)
       port map (dataoutx(i), databp(i), testin(TESTIN_WIDTH-1), dataout(i));
     end generate;
+  end generate;
+
+  custominx(custominx'high downto custombits) <= (others => '0');
+  custominx(custombits-1 downto 0) <= customin;
+  customout <= customoutx(custombits-1 downto 0);
+
+  nocust: if syncram_has_customif(tech)=0 generate
+    customoutx <= (others => '0');
   end generate;
 
   noscanbp : if not SCANTESTBP generate dataout <= dataoutx; end generate;
@@ -130,6 +144,16 @@ begin
          port map (clk, address, datain, dataoutx, xenable, xwrite);
   end generate;
 
+  saed : if tech = saed32 generate
+    x0 : saed32_syncram generic map (abits, dbits)
+         port map (clk, address, datain, dataoutx, xenable, xwrite);
+  end generate;
+
+  dar  : if tech = dare generate
+    x0 : dare_syncram generic map (abits, dbits)
+         port map (clk, address, datain, dataoutx, xenable, xwrite);
+  end generate;
+
   proa3 : if tech = apa3 generate
     x0 : proasic3_syncram generic map (abits, dbits)
          port map (clk, address, datain, dataoutx, xenable, xwrite);
@@ -161,7 +185,7 @@ begin
   end generate;
 
   alt : if (tech = altera) or (tech = stratix1) or (tech = stratix2) or
-	(tech = stratix3) or (tech = cyclone3) generate
+	(tech = stratix3) or (tech = stratix4) or (tech = cyclone3) generate
     x0 : altera_syncram generic map(abits, dbits)
          port map(clk, address, datain, dataoutx, xenable, xwrite);
   end generate;
@@ -183,7 +207,7 @@ begin
 
   ut09  : if tech = ut90 generate
     x0 : ut90nhbd_syncram generic map (abits, dbits)
-         port map (clk, address, datain, dataoutx, xenable, xwrite);
+         port map (clk, address, datain, dataoutx, xenable, xwrite, testin(TESTIN_WIDTH-3));
   end generate;
 
   ut13 : if tech = ut130 generate
@@ -229,7 +253,7 @@ begin
          port map (clk, address, datain, dataoutx, xenable, xwrite);
   end generate;
 
-  tm65gplu  : if tech = tm65gpl generate
+  tm65gplu  : if tech = tm65gplus generate
     x0 : tm65gplus_syncram generic map (abits, dbits)
       port map (clk, address, datain, dataoutx, xenable, xwrite);
   end generate;
@@ -244,6 +268,11 @@ begin
       port map (clk, address, datain, dataoutx, xenable, xwrite);
   end generate;
 
+  rh13t : if tech = rhlib13t generate
+    x0 : rh_lib13t_syncram generic map(abits, dbits)
+         port map(clk, address, datain, dataoutx, xenable, xwrite, testin(TESTIN_WIDTH-3 downto TESTIN_WIDTH-4));
+  end generate;
+  
 -- pragma translate_off
   noram : if has_sram(tech) = 0 generate
     x : process

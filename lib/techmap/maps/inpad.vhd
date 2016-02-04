@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -75,6 +75,12 @@ begin
   rhu : if (tech = rhumc) generate
     x0 : rhumc_inpad generic map (level, voltage, filter) port map (pad, o);
   end generate;
+  saed : if (tech = saed32) generate
+    x0 : saed32_inpad generic map (level, voltage, filter) port map (pad, o);
+  end generate;
+  dar : if (tech = dare) generate
+    x0 : dare_inpad generic map (level, voltage, filter) port map (pad, o);
+  end generate;
   ihp : if (tech = ihp25) generate
     x0 : ihp25_inpad generic map(level, voltage) port map(pad, o);
   end generate;
@@ -111,7 +117,8 @@ use techmap.gencomp.all;
 
 entity inpadv is
   generic (tech : integer := 0; level : integer := 0;
-	   voltage : integer := 0; width : integer := 1);
+	   voltage : integer := 0; width : integer := 1;
+           filter : integer := 0; strength : integer := 0);
   port (
     pad : in  std_logic_vector(width-1 downto 0);
     o   : out std_logic_vector(width-1 downto 0));
@@ -119,6 +126,6 @@ end;
 architecture rtl of inpadv is
 begin
   v : for i in width-1 downto 0 generate
-    x0 : inpad generic map (tech, level, voltage) port map (pad(i), o(i));
+    x0 : inpad generic map (tech, level, voltage, filter, strength) port map (pad(i), o(i));
   end generate;
 end;

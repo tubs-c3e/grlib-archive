@@ -1,36 +1,79 @@
-include .config
 
+### GRLIB general setup and extra target to clean software
+include .config
 GRLIB=../..
-TOP=leon3mp
+CLEAN=soft-clean
+
+### Xilinx Vivado device and board setup
 BOARD=xilinx-kc705-xc7k325t
 DESIGN=leon3-xilinx-kc705
-
 include $(GRLIB)/boards/$(BOARD)/Makefile.inc
-
 DEVICE=$(PART)$(PACKAGE)-$(SPEED)
 XDC=$(GRLIB)/boards/$(BOARD)/$(BOARD).xdc
 
-VHDLSYNFILES= \
-	config.vhd ahbrom.vhd leon3mp.vhd ./ddr_dummy.vhd
-VHDLSIMFILES=testbench.vhd
-SIMTOP=testbench
-BITGEN=$(GRLIB)/boards/$(BOARD)/default.ut
-CLEAN=soft-clean
-VCOMOPT=-explicit
-ifeq ($(CONFIG_MIG_SERIES7),y)
-VLOGOPT= +define+1Gb +define+sg125 +define+x8
-VSIMOPT= -gUSE_MIG_INTERFACE_MODEL=true -gdisas=1 -gDEBUG=0 -i -do preload_ddr3_dimm.do -t ps -novopt +notimingchecks -L secureip_ver -L xilinxcorelib_ver -L unisims_ver glbl $(SIMTOP)
-else
-VSIMOPT= -gdisas=1 -i -t ps $(SIMTOP)
-endif
-TECHLIBS = secureip unisim 
-EXTRA_SOFT = gen_hex_dim
+### Simulation Options ###
+# Design Top Level
+TOP=leon3mp
 
-LIBSKIP = core1553bbc core1553brm core1553brt gr1553 corePCIF \
-	tmtc openchip ihp usbhc spw gsi cypress hynix \
+# Simulation top level
+SIMTOP=testbench
+
+# Uncomment for Modelsim or change to specify your simulator
+#GRLIB_SIMULATOR=ModelSim
+
+# Options used during compilation
+VCOMOPT=-explicit -O0
+
+# GRLIB Options
+VSIMOPT= -gdisas=0
+
+# GRETH options
+ifeq ($(CONFIG_GRETH_ENABLE),y)
+VSIMOPT+= -L secureip_ver -L xilinxcorelib_ver -L unisims_ver 
+endif
+
+# - MIG -
+ifeq ($(CONFIG_MIG_SERIES7),y)
+VSIMOPT+= -t fs -novopt
+VSIMOPT+= -L secureip_ver -L xilinxcorelib_ver -L unisims_ver glbl
+ifndef CONFIG_MIG_SERIES_7_MODEL
+VSIMOPT+= -gUSE_MIG_INTERFACE_MODEL=false 
+else
+VSIMOPT+= -gUSE_MIG_INTERFACE_MODEL=true -t ps
+endif
+endif
+
+# Simulator switches
+ifeq ("$(GRLIB_SIMULATOR)","ALDEC")
+VSIMOPT+= +access +w -voptargs="+acc" +notimingchecks
+else
+VSIMOPT+=-novopt +notimingchecks
+endif
+
+# Run simulation in batch mode
+VSIMOPT+= -c
+
+# Simulation scripts
+#VSIMOPT+= -do "run 1300us; do wave.do; run 200us"
+VSIMOPT+= -do "run -all"
+
+# Toplevel
+VSIMOPT+= $(SIMTOP)
+
+### End of Simulation Options ###
+
+### Testbench, design and libraries to compile and not to compile
+
+VHDLSYNFILES= config.vhd ahbram_sim.vhd ahbrom.vhd leon3mp.vhd ddr_dummy.vhd
+VHDLSIMFILES=testbench.vhd
+
+TECHLIBS = secureip unisim
+
+LIBSKIP = pci pci/pcif core1553bbc core1553brm core1553brt gr1553 corePCIF \
+	tmtc openchip ihp spw gsi cypress hynix \
 	spansion leon4 leon4v0 secureip
-DIRSKIP = b1553 pcif leon2 leon2ft crypto satcan pci ambatest can \
-	usb grusbhc spacewire ascs slink spi hcan \
+DIRSKIP = b1553 pci pci/pcif leon2 leon2ft crypto satcan pci ambatest \
+	spacewire ascs slink \
 	leon4 leon4v0 l2cache pwm gr1553b iommu ac97 secureip
 FILESKIP = grcan.vhd ddr2.v mobile_ddr.v
 
@@ -44,12 +87,11 @@ all: help-local
 help-local: help
 	@echo
 	@echo " design specific targets:"
-	@echo " (Only needed to generate and compile MIG Series7)"
+	@echo " (Only needed to generate and compile IPs for Xilinx Series7)"
 	@echo
-	@echo " make compile_xilinx_verilog_lib   : compile xilinx library"
-	@echo " make clean_xilinx_verilog_lib     : remove xilinx library"
+	@echo " make compile_xilinx_verilog_lib   : compile xilinx verilog library"
+	@echo " make clean_xilinx_verilog_lib     : remove xilinx verilog library"
 	@echo " make mig_series7                  : create xilinx memory controller using coregen."
-	@echo " make mig_series7_clean            : remove generated memory controller"
 	@echo
 	@echo " ================================================================"
 	@echo "         Quick start guide for simulation of systest.c"

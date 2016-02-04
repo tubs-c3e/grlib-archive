@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -75,6 +75,14 @@ begin
 
     n2x : if (tech = easic45) generate
       clkgate : clkand_n2x port map(i => i, en => eni, o => o, tsten => tsten);
+    end generate;
+
+    saed : if (tech = saed32) generate
+      clkgate : clkand_saed32 port map(i => i, en => eni, o => o, tsten => tsten);
+    end generate;
+
+    dar : if (tech = dare) generate
+      clkgate : clkand_dare port map(i => i, en => eni, o => o, tsten => tsten);
     end generate;
   end generate;
 

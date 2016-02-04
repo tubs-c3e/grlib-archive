@@ -58,7 +58,7 @@ package config is
   constant CFG_DLINE : integer := 8;
   constant CFG_DREPL : integer := 0;
   constant CFG_DLOCK : integer := 0;
-  constant CFG_DSNOOP : integer := 0 + 0 + 4*0;
+  constant CFG_DSNOOP : integer := 0*2 + 4*0;
   constant CFG_DFIXED : integer := 16#0#;
   constant CFG_DLRAMEN : integer := 0;
   constant CFG_DLRAMADDR: integer := 16#8F#;
@@ -114,6 +114,7 @@ package config is
   constant CFG_AHBRAMEN : integer := 0;
   constant CFG_AHBRSZ : integer := 1;
   constant CFG_AHBRADDR : integer := 16#A00#;
+  constant CFG_AHBRPIPE : integer := 0;
 -- UART 1
   constant CFG_UART1_ENABLE : integer := 1;
   constant CFG_UART1_FIFO : integer := 4;
@@ -137,7 +138,6 @@ package config is
   constant CFG_KBD_ENABLE : integer := 1;
   constant CFG_VGA_ENABLE : integer := 1;
   constant CFG_SVGA_ENABLE : integer := 0;
-
 -- GRLIB debugging
   constant CFG_DUART : integer := 0;
 end;

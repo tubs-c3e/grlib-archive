@@ -4,6 +4,10 @@
 #define CONFIG_SYN_TECH umc
 #elif defined CONFIG_SYN_RHUMC
 #define CONFIG_SYN_TECH rhumc
+#elif defined CONFIG_SYN_DARE
+#define CONFIG_SYN_TECH dare
+#elif defined CONFIG_SYN_SAED32
+#define CONFIG_SYN_TECH saed32
 #elif defined CONFIG_SYN_ATC18
 #define CONFIG_SYN_TECH atc18s
 #elif defined CONFIG_SYN_ATC18RHA
@@ -22,7 +26,13 @@
 #define CONFIG_SYN_TECH stratix2
 #elif defined CONFIG_SYN_STRATIXIII
 #define CONFIG_SYN_TECH stratix3
+#elif defined CONFIG_SYN_STRATIXIV
+#define CONFIG_SYN_TECH stratix4
+#elif defined CONFIG_SYN_CYCLONEII
+#define CONFIG_SYN_TECH stratix2
 #elif defined CONFIG_SYN_CYCLONEIII
+#define CONFIG_SYN_TECH cyclone3
+#elif defined CONFIG_SYN_CYCLONEIV
 #define CONFIG_SYN_TECH cyclone3
 #elif defined CONFIG_SYN_EASIC45
 #define CONFIG_SYN_TECH easic45
@@ -97,7 +107,7 @@
 #elif defined CONFIG_SYN_TSMC90
 #define CONFIG_SYN_TECH tsmc90
 #elif defined CONFIG_SYN_TM65GPLUS
-#define CONFIG_SYN_TECH tm65gpl
+#define CONFIG_SYN_TECH tm65gplus
 #elif defined CONFIG_SYN_CUSTOM1
 #define CONFIG_SYN_TECH custom1
 #else
@@ -110,6 +120,10 @@
 #define CFG_RAM_TECH umc
 #elif defined CONFIG_MEM_RHUMC
 #define CFG_RAM_TECH rhumc
+#elif defined CONFIG_MEM_DARE
+#define CFG_RAM_TECH dare
+#elif defined CONFIG_MEM_SAED32
+#define CFG_RAM_TECH saed32
 #elif defined CONFIG_MEM_VIRAGE
 #define CFG_RAM_TECH memvirage
 #elif defined CONFIG_MEM_ARTISAN

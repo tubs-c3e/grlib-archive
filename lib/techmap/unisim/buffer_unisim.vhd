@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ use ieee.std_logic_1164.all;
 library unisim;
 use unisim.BUFGMUX;
 use unisim.BUFG;
-use unisim.BUFGDLL;
 -- pragma translate_on
 
 entity clkbuf_xilinx is
@@ -41,7 +40,6 @@ entity clkbuf_xilinx is
 end entity;
 
 architecture rtl of clkbuf_xilinx is
-  component BUFGDLL port (O : out std_logic; I : in std_logic); end component;
   component BUFGMUX port (O : out std_logic; I0, I1, S : in std_logic); end component;
   component BUFG port (O : out std_logic; I : in std_logic); end component;
   signal gnd  : std_ulogic;

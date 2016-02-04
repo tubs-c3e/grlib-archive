@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@ use grlib.stdlib.all;
 use grlib.amba.all;
 use grlib.devices.all;
 library gaisler;
-use gaisler.memctrl.all;
 use gaisler.ddrpkg.all;
+use gaisler.ddrintpkg.all;
 library techmap;
 use techmap.gencomp.ddrphy_has_datavalid;
 use techmap.gencomp.ddrphy_latency;
@@ -74,8 +74,8 @@ entity ddr1spax is
       clk_ahb : in  std_ulogic;
       ahbsi   : in  ahb_slv_in_type;
       ahbso   : out ahb_slv_out_type;
-      sdi     : in  sdctrl_in_type;
-      sdo     : out sdctrl_out_type
+      sdi     : in  ddrctrl_in_type;
+      sdo     : out ddrctrl_out_type
    );  
 end ddr1spax;
 
@@ -137,7 +137,7 @@ architecture rtl of ddr1spax is
   
   signal vcc: std_ulogic;
 
-  signal sdox: sdctrl_out_type;
+  signal sdox: ddrctrl_out_type;
   signal ce: std_logic;
 
 begin
@@ -148,9 +148,9 @@ begin
     ahbc : ddr2spax_ahb
       generic map (hindex => hindex, haddr => haddr, hmask => hmask, ioaddr => ioaddr, iomask => iomask,
                    nosync => nosync, burstlen => burstlen, ahbbits => xahbw, revision => revision,
-                   devid => GAISLER_DDRSP)
+                   devid => GAISLER_DDRSP, regarea => 0)
       port map (ahb_rst, clk_ahb, ahbsi, ahbso, request, start_tog, response,
-                wbwaddr, wbwdata, wbwrite, wbwritebig, rbraddr, rbrdata);
+                wbwaddr, wbwdata, wbwrite, wbwritebig, rbraddr, rbrdata, '0', FTFE_BEID_DDR1);
     ce <= '0';
   end generate;
 
@@ -179,7 +179,7 @@ begin
 
 
   sdoproc: process(sdox,ce)
-    variable o: sdctrl_out_type;
+    variable o: ddrctrl_out_type;
   begin
     o := sdox;
     o.ce := ce;

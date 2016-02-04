@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -68,7 +68,9 @@ entity greth_gbit is
     enable_mdint   : integer range 0 to 1 := 0;
     multicast      : integer range 0 to 1 := 0;
     ramdebug       : integer range 0 to 2 := 0;
-    mdiohold       : integer := 1);
+    mdiohold       : integer := 1;
+    gmiimode       : integer range 0 to 1 := 0
+    );
   port(
     rst            : in  std_ulogic;
     clk            : in  std_ulogic;
@@ -165,7 +167,9 @@ begin
       multicast      => multicast,
       edclsepahbg    => 0,
       ramdebug       => ramdebug,
-      mdiohold       => mdiohold)
+      mdiohold       => mdiohold,
+      gmiimode       => gmiimode
+      )
     port map(
       rst            => rst,
       clk            => clk,
@@ -235,12 +239,14 @@ begin
       --ethernet input signals
       gtx_clk        => ethi.gtx_clk,  
       tx_clk         => ethi.tx_clk,
+      tx_dv          => ethi.tx_dv,
       rx_clk         => ethi.rx_clk,
       rxd            => ethi.rxd,  
       rx_dv          => ethi.rx_dv,
       rx_er          => ethi.rx_er,
       rx_col         => ethi.rx_col,
       rx_crs         => ethi.rx_crs,
+      rx_en          => ethi.rx_en,
       mdio_i         => ethi.mdio_i,
       phyrstaddr     => ethi.phyrstaddr,
       mdint          => ethi.mdint,
@@ -262,6 +268,8 @@ begin
       edcladdr       => ethi.edcladdr,
       edclsepahb     => ethi.edclsepahb,
       edcldisable    => ethi.edcldisable);
+
+  etho.tx_clk <= '0';                   -- driven in rgmii component
 
   irqdrv : process(irq)
   begin
@@ -292,19 +300,6 @@ begin
       port map(clk, rxrenable, rxraddress(fabits-1 downto 0), rxrdata, clk,
       rxwrite, rxwaddress(fabits-1 downto 0), rxwdata, ahbmi.testin);
   end generate;
-
-  ft1 : if ft /= 0 generate
-    tx_fifo0 : syncram_2pft generic map(tech => memtech, abits => fabits,
-      dbits => 32, sepclk => 0, ft => ft, testen => scanen)
-      port map(clk, txrenable, txraddress(fabits-1 downto 0), txrdata, clk,
-      txwrite, txwaddress(fabits-1 downto 0), txwdata, open, ahbmi.testin);
-
-    rx_fifo0 : syncram_2pft generic map(tech => memtech, abits => fabits,
-      dbits => 32, sepclk => 0, ft => ft, testen => scanen)
-      port map(clk, rxrenable, rxraddress(fabits-1 downto 0), rxrdata, clk,
-      rxwrite, rxwaddress(fabits-1 downto 0), rxwdata, open, ahbmi.testin);
-  end generate;
-
 -------------------------------------------------------------------------------
 -- EDCL buffer ram ------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -316,16 +311,6 @@ begin
       clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
       ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0), ahbmi.testin);
   end generate;
-
-  edclramft1 : if (edcl /= 0) and (edclft /= 0) generate
-    r0 : syncram_2pft generic map (memtech, eabits, 16, 0, 0, edclft, scanen) port map (
-      clk, erenable, eraddress(eabits-1 downto 0), erdata(31 downto 16), clk,
-      ewritem, ewaddressm(eabits-1 downto 0), ewdata(31 downto 16), open, ahbmi.testin);
-    r1 : syncram_2pft generic map (memtech, eabits, 16, 0, 0, edclft, scanen) port map (
-      clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
-      ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0), open, ahbmi.testin);
-  end generate;
-  
 -- pragma translate_off
   bootmsg : report_version 
   generic map (

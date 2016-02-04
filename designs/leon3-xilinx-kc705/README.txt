@@ -2,6 +2,19 @@ This leon3 design is tailored to the Xilinx kintex-7 KC705 board
 
 http://www.xilinx.com/kc705
 
+Note: This design requires that the GRLIB_SIMULATOR variable is
+correctly set. Please refer to the documentation in doc/grlib.pdf for
+additional information.
+
+Note: The Vivado flow and parts of this design are still
+experimental. Currently the design configuration should be left as-is.
+
+Note: You must have both Vivado 2013.3 and Xilinx ISE 14.7 in your 
+path for the make targets to work.
+
+Note: Issues on the Ethernet interface have been observed when using
+the GRETH 10/100 Mbit MAC with this design.
+
 Simulation and synthesis
 ------------------------
 
@@ -10,47 +23,84 @@ interface. The MIG source code cannot be distributed due to the
 prohibitive Xilinx license, so the MIG must be re-generated with 
 coregen before simulation and synthesis can be done.
 
-To generate the MIG and install the Xilinx unisim simulation
-library, do as follows:
+Xilinx MIG interface will automatically be generated when 
+Vivado is launched  
 
-  make vsim
-  make mig_series7
-
-To simulate and run systest.c on the Leon design using the memory 
+To simulate using XSIM and run systest.c on the Leon design using the memory 
 controller from Xilinx use the make targets:
 
   make soft
+  make vivado-launch
+
+To simulate using Modelsim and run systest.c on the Leon design using 
+the memory controller from Xilinx use the make targets:
+
+  make vsim (only required if Modelsim/Aldec is used as simulator)
+  make mig_series7
+  make soft
   make vsim-launch
 
-With the generic USE_MIG_INTERFACE_MODEL can the user select to use the real
-XILINX memory contoller + MICRON memory model or a simplified model. For speed
-select the simplified model by setting the generic USE_MIG_INTERFACE_MODEL to TRUE.
+To simulate using Aldec Riviera use the following make targets:
 
-Synthesis will ONLY work with Vivado 2012.02 installed or newer, and 
-the XILINX variable properly set in the shell. To synthesize the design, do
+  make riviera
+  make mig_series7
+  make soft
+  make riviera-launch
+
+To synthesize the design, do
 
   make vivado
 
-and then
-
-  make vivado-prog-fpga
+and then use iMPACT programming tool:
   
-  or use xilinx programming tool
-  
-  impact -b vivado/leon3-xilinx-kc705/leon3-xilinx-kc705.runs/impl_1/leon3mp.bit
+  make ise-prog-fpga
 
 to program the FPGA.
 
-The MIG can be disabled either by deselecting the MIG controller in 'xconfig' or
-manually editing the config.vhd file. When no MIG is present in the system normal
-GRLIB flow can be used and no extra compile steps are needed. Also when when no
-MIG is present it is possible to control and set the system frequency via xconfig. 
-Note that the system frequency can be modified via Xilinx Coregen when the 
-MIG is present.
+After successfully programmed the FPGA using the target 'ise-prog-fpga' user might 
+have to press the 'EAST' button in order to successfully complete the calibration
+process in the MIG. Led 1 and led 2 should be constant green if the Calibration 
+process has been successful.
 
-Compiling and launching modelsim when no memory controller is present:
+If user tries to connect to the board and the MIG has not been calibrated successfully
+'grmon' will output:
+
+$ grmon -xilusb -u -nb
+  
+  GRMON2 LEON debug monitor v2.0.43-2-g95d293c internal version
+  
+  Copyright (C) 2013 Aeroflex Gaisler - All rights reserved.
+  For latest updates, go to http://www.gaisler.com/
+  Comments or bug-reports to support@gaisler.com
+  
+Parsing -xilusb
+Parsing -u
+Parsing -nb
+
+Commands missing help:
+ datacache
+
+Xilusb: Cable type/rev : 0x3
+ JTAG chain (1):
+xc7k325t
+
+AMBA plug&play not found!
+Failed to initialize target!
+Exiting GRMON
+
+The MIG and SGMII IP can be disabled either by deselecting the memory controller 
+and Gaisler Ethernet interface in 'xconfig' or manually editing the config.vhd file. 
+When no MIG and no SGMII block is present in the system normal GRLIB flow can be 
+used and no extra compile steps are needed. Also when when no MIG is present it 
+is possible to control and set the system frequency via xconfig. 
+Note that the system frequency can be modified via Vivado when the MIG is present
+by modifying within specified limits for the MIG IP.
+
+Compiling and launching modelsim when no memory controller and no ethernet interface
+is present using Modelsim/Aldec simulator:
 
   make vsim
+  make soft
   make vsim-launch
 
 Simulation options
@@ -61,17 +111,14 @@ default value when launching the simulator. For Modelsim use the option "-g" i.e
 to enable processor disassembly to console launch modelsim with the option: "-gdisas=1"
 
 USE_MIG_INTERFACE_MODEL - Use MIG simulation model for faster simulation run time
+(Option can now be controlled via 'make xconfig')
 
 disas - Enable processor disassembly to console
-
-DEBUG - Enable extra debug information when using Micron DDR3 models
 
 Design specifics
 ----------------
 
-* Synthesis should be done using Vivado 2012.02 or newer
-
-* The DDR3 controller is implemented with Xilinx MIG Series7 1.6 and 
+* The DDR3 controller is implemented with Xilinx MIG Series7 2.0 and 
   runs of the 200 MHz clock. The DDR3 memory runs at 400 MHz
   (DDR3-800). grmon-2.0.30-74 or later is needed to detect the
    DDR3 memory.
@@ -105,9 +152,10 @@ Design specifics
   make vsim
   make mig_series7
 
-  Then rebuild the scripts and simulation model:
+  Then rebuild the sofwtare and launch the simulator simulation:
 
-  make distclean vsim
+  make soft
+  make vsim-launch
 
   Modelsim v10.1 or newer is required and simulate Xilinx memory
   controller for Series 7.
@@ -120,7 +168,6 @@ Design specifics
 
 * The JTAG DSU interface is enabled and accesible via the JTAG port.
   Start grmon with -xilusb to connect.
-
 
 * Output from GRMON is:
 

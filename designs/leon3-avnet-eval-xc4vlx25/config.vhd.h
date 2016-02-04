@@ -46,7 +46,7 @@
   constant CFG_DLINE 	: integer := CFG_DLINE_SZ;
   constant CFG_DREPL 	: integer := CFG_DCACHE_ALGORND;
   constant CFG_DLOCK 	: integer := CONFIG_DCACHE_LOCK;
-  constant CFG_DSNOOP	: integer := CONFIG_DCACHE_SNOOP + CONFIG_DCACHE_SNOOP_FAST + 4*CONFIG_DCACHE_SNOOP_SEPTAG;
+  constant CFG_DSNOOP	: integer := CONFIG_DCACHE_SNOOP*2 + 4*CONFIG_DCACHE_SNOOP_SEPTAG;
   constant CFG_DFIXED	: integer := 16#CONFIG_CACHE_FIXED#;
   constant CFG_DLRAMEN	: integer := CONFIG_DCACHE_LRAM;
   constant CFG_DLRAMADDR: integer := 16#CONFIG_DCACHE_LRSTART#;
@@ -126,12 +126,15 @@
   constant CFG_AHBRAMEN	: integer := CONFIG_AHBRAM_ENABLE;
   constant CFG_AHBRSZ	: integer := CFG_AHBRAMSZ;
   constant CFG_AHBRADDR	: integer := 16#CONFIG_AHBRAM_START#;
-
+  constant CFG_AHBRPIPE : integer := CONFIG_AHBRAM_PIPE;
 -- Gaisler Ethernet core
-  constant CFG_GRETH   	: integer := CONFIG_GRETH_ENABLE;
-  constant CFG_GRETH1G	: integer := CONFIG_GRETH_GIGA;
-  constant CFG_ETH_FIFO : integer := CFG_GRETH_FIFO;
-
+  constant CFG_GRETH   	    : integer := CONFIG_GRETH_ENABLE;
+  constant CFG_GRETH1G	    : integer := CONFIG_GRETH_GIGA;
+  constant CFG_ETH_FIFO     : integer := CFG_GRETH_FIFO;
+#ifdef CONFIG_LEON3FT_PRESENT
+  constant CFG_GRETH_FT     : integer := CONFIG_GRETH_FT;
+  constant CFG_GRETH_EDCLFT : integer := CONFIG_GRETH_EDCLFT;
+#endif
 -- UART 1
   constant CFG_UART1_ENABLE : integer := CONFIG_UART1_ENABLE;
   constant CFG_UART1_FIFO   : integer := CFG_UA1_FIFO;

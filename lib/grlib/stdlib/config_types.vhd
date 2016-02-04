@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 -----------------------------------------------------------------------------
 -- Package: 	config_types
 -- File:	config_types.vhd
--- Author:	Jan Andersson - Aeroflex Gaisler AB
 -- Description:	GRLIB Global configuration types package.
 ------------------------------------------------------------------------------
 
@@ -41,7 +40,12 @@ package config_types is
   constant grlib_techmap_strict_ram      : integer := 2;
   -- Expand testin vector to syncrams with additional bits
   constant grlib_techmap_testin_extra    : integer := 3;
+  -- Add synchronous resets to all registers (requires support in IP cores)
+  constant grlib_sync_reset_enable_all   : integer := 4;
+  -- Use asynchronous reset, with this option enabled all registers will be
+  -- reset using asynchronous reset (within IP cores that support this).
+  constant grlib_async_reset_enable      : integer := 5;
 
-  type grlib_config_array_type is array (0 to 4) of integer;
+  type grlib_config_array_type is array (0 to 6) of integer;
   
 end;

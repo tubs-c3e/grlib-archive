@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -70,7 +70,9 @@ entity greth is
     multicast      : integer range 0 to 1  := 0;
     ramdebug       : integer range 0 to 2  := 0;
     mdiohold       : integer := 1;
-    maxsize        : integer := 1518);
+    maxsize        : integer := 1518;
+    gmiimode       : integer range 0 to 1  := 0
+    );
   port(
     rst            : in  std_ulogic;
     clk            : in  std_ulogic;
@@ -175,7 +177,9 @@ begin
       edclsepahbg    => 0,
       ramdebug       => ramdebug,
       mdiohold       => mdiohold, 
-      maxsize        => maxsize)
+      maxsize        => maxsize,
+      gmiimode       => gmiimode
+      )
     port map(
       rst            => rst,
       clk            => clk,
@@ -210,13 +214,13 @@ begin
       ehprot         => open,
       ehwdata        => open,
       --apb slv in 
-      psel	     => apbi.psel(pindex),
-      penable	     => apbi.penable,
-      paddr	     => apbi.paddr,
-      pwrite	     => apbi.pwrite,
-      pwdata	     => apbi.pwdata,
+      psel	         => apbi.psel(pindex),
+      penable	       => apbi.penable,
+      paddr	         => apbi.paddr,
+      pwrite	       => apbi.pwrite,
+      pwdata	       => apbi.pwdata,
       --apb slv out
-      prdata	     => apbo.prdata,
+      prdata	       => apbo.prdata,
       --irq
       irq            => irq,
       --rx ahb fifo
@@ -245,12 +249,14 @@ begin
       --ethernet input signals
       rmii_clk       => ethi.rmii_clk,
       tx_clk         => ethi.tx_clk,
+      tx_dv          => ethi.tx_dv,
       rx_clk         => ethi.rx_clk,
       rxd            => ethi.rxd(3 downto 0),   
       rx_dv          => ethi.rx_dv,
       rx_er          => ethi.rx_er,
       rx_col         => ethi.rx_col,
       rx_crs         => ethi.rx_crs,
+      rx_en          => ethi.rx_en,
       mdio_i         => ethi.mdio_i,
       phyrstaddr     => ethi.phyrstaddr,
       mdint          => ethi.mdint,
@@ -275,6 +281,7 @@ begin
   etho.mdio_oe <= ahbmi.testoen when (scanen = 1) and (ahbmi.testen = '1')
 	else lmdio_oe;
   etho.gbit <= '0';
+  etho.tx_clk <= '0';                   -- driven in rgmii component
 
   irqdrv : process(irq)
   begin
@@ -304,17 +311,6 @@ begin
       dbits => 32, sepclk => 0)
       port map(clk, rxrenable, rxraddress(fabits-1 downto 0), rxrdata, clk,
       rxwrite, rxwaddress(fabits-1 downto 0), rxwdata);
-  end generate; 
-  ft1 : if ft /= 0 generate
-    tx_fifo0 : syncram_2pft generic map(tech => memtech, abits => txfabits,
-      dbits => 32, sepclk => 0, ft => ft)
-      port map(clk, txrenable, txraddress(txfabits-1 downto 0), txrdata, clk,
-      txwrite, txwaddress(txfabits-1 downto 0), txwdata);
-
-    rx_fifo0 : syncram_2pft generic map(tech => memtech, abits => fabits,
-      dbits => 32, sepclk => 0, ft => ft)
-      port map(clk, rxrenable, rxraddress(fabits-1 downto 0), rxrdata, clk,
-      rxwrite, rxwaddress(fabits-1 downto 0), rxwdata);
   end generate;
 -------------------------------------------------------------------------------
 -- EDCL buffer ram ------------------------------------------------------------
@@ -324,15 +320,6 @@ begin
       clk, erenable, eraddress(eabits-1 downto 0), erdata(31 downto 16), clk,
       ewritem, ewaddressm(eabits-1 downto 0), ewdata(31 downto 16)); 
     r1 : syncram_2p generic map (memtech, eabits, 16) port map(
-      clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
-      ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0)); 
-  end generate;
-
-  edclramft1 : if (edcl /= 0) and (edclft /= 0) generate
-    r0 : syncram_2p generic map (memtech, eabits, 16, 0, 0, ft) port map(
-      clk, erenable, eraddress(eabits-1 downto 0), erdata(31 downto 16), clk,
-      ewritem, ewaddressm(eabits-1 downto 0), ewdata(31 downto 16)); 
-    r1 : syncram_2p generic map (memtech, eabits, 16, 0, 0, ft) port map(
       clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
       ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0)); 
   end generate;

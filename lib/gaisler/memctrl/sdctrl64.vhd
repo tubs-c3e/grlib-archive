@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -757,7 +757,9 @@ begin
   sdo.cbcal_inc  <= (others => '0'); 
   sdo.read_pend  <= (others => '0'); 
   sdo.regwdata  <= (others => '0'); 
-  sdo.regwrite  <= (others => '0'); 
+  sdo.regwrite  <= (others => '0');
+  sdo.dqs_gate <= '0';
+  sdo.nbdrive <= '0';
 
   regs : process(clk, rst) begin
     if rising_edge(clk) then

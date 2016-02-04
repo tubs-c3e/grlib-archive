@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -44,7 +44,10 @@ component grtestmod
     oen         : in std_ulogic;
     writen  	: in std_ulogic; 		
     brdyn  	: out  std_ulogic;
-    bexcn  	: out  std_ulogic
+    bexcn  	: out  std_ulogic;
+    state       : out std_logic_vector(1 downto 0);
+    testdev     : out std_logic_vector(19 downto 0);
+    subtest     : out std_logic_vector(7 downto 0)
  );
 
 end component;

@@ -58,7 +58,7 @@ package config is
   constant CFG_DLINE : integer := 4;
   constant CFG_DREPL : integer := 0;
   constant CFG_DLOCK : integer := 0;
-  constant CFG_DSNOOP : integer := 1 + 1 + 4*1;
+  constant CFG_DSNOOP : integer := 1*2 + 4*1;
   constant CFG_DFIXED : integer := 16#0#;
   constant CFG_DLRAMEN : integer := 0;
   constant CFG_DLRAMADDR: integer := 16#8F#;
@@ -107,8 +107,8 @@ package config is
   constant CFG_DDRSP : integer := 1;
   constant CFG_DDRSP_INIT : integer := 1;
   constant CFG_DDRSP_FREQ : integer := (100);
-  constant CFG_DDRSP_COL : integer := (9);
-  constant CFG_DDRSP_SIZE : integer := (8);
+  constant CFG_DDRSP_COL : integer := (10);
+  constant CFG_DDRSP_SIZE : integer := (64);
   constant CFG_DDRSP_RSKEW : integer := (0);
 -- SPI memory controller
   constant CFG_SPIMCTRL : integer := 1;
@@ -130,10 +130,13 @@ package config is
   constant CFG_AHBRAMEN : integer := 0;
   constant CFG_AHBRSZ : integer := 1;
   constant CFG_AHBRADDR : integer := 16#A00#;
+  constant CFG_AHBRPIPE : integer := 0;
 -- Gaisler Ethernet core
   constant CFG_GRETH : integer := 1;
   constant CFG_GRETH1G : integer := 0;
   constant CFG_ETH_FIFO : integer := 16;
+
+
 -- UART 1
   constant CFG_UART1_ENABLE : integer := 1;
   constant CFG_UART1_FIFO : integer := 4;

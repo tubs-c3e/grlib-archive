@@ -21,8 +21,8 @@ package config is
   constant CFG_SCAN : integer := 0;
 -- Clock generator
   constant CFG_CLKTECH : integer := spartan6;
-  constant CFG_CLKMUL : integer := (20);
-  constant CFG_CLKDIV : integer := (11);
+  constant CFG_CLKMUL : integer := (5);
+  constant CFG_CLKDIV : integer := (3);
   constant CFG_OCLKDIV : integer := 1;
   constant CFG_OCLKBDIV : integer := 0;
   constant CFG_OCLKCDIV : integer := 0;
@@ -59,7 +59,7 @@ package config is
   constant CFG_DLINE : integer := 4;
   constant CFG_DREPL : integer := 2;
   constant CFG_DLOCK : integer := 0;
-  constant CFG_DSNOOP : integer := 1 + 1 + 4*1;
+  constant CFG_DSNOOP : integer := 1*2 + 4*1;
   constant CFG_DFIXED : integer := 16#0#;
   constant CFG_DLRAMEN : integer := 0;
   constant CFG_DLRAMADDR: integer := 16#8F#;
@@ -117,8 +117,8 @@ package config is
   constant CFG_MIG_RANKS : integer := (1);
   constant CFG_MIG_COLBITS : integer := (10);
   constant CFG_MIG_ROWBITS : integer := (13);
-  constant CFG_MIG_BANKBITS: integer := (3);
-  constant CFG_MIG_HMASK : integer := 16#F80#;
+  constant CFG_MIG_BANKBITS: integer := (2);
+  constant CFG_MIG_HMASK : integer := 16#F00#;
 -- AHB status register
   constant CFG_AHBSTAT : integer := 1;
   constant CFG_AHBSTATN : integer := (1);
@@ -132,10 +132,13 @@ package config is
   constant CFG_AHBRAMEN : integer := 0;
   constant CFG_AHBRSZ : integer := 1;
   constant CFG_AHBRADDR : integer := 16#A00#;
+  constant CFG_AHBRPIPE : integer := 0;
 -- Gaisler Ethernet core
   constant CFG_GRETH : integer := 1;
   constant CFG_GRETH1G : integer := 0;
   constant CFG_ETH_FIFO : integer := 32;
+  constant CFG_GRETH_FT : integer := 0;
+  constant CFG_GRETH_EDCLFT : integer := 0;
 -- UART 1
   constant CFG_UART1_ENABLE : integer := 1;
   constant CFG_UART1_FIFO : integer := 4;
@@ -173,6 +176,7 @@ package config is
   constant CFG_SPIMCTRL_SCALER : integer := 1;
   constant CFG_SPIMCTRL_ASCALER : integer := 1;
   constant CFG_SPIMCTRL_PWRUPCNT : integer := 0;
+  constant CFG_SPIMCTRL_OFFSET : integer := 16#0#;
 
 -- SPI controller
   constant CFG_SPICTRL_ENABLE : integer := 0;
@@ -191,6 +195,13 @@ package config is
 -- AMBA System ACE Interface Controller
   constant CFG_GRACECTRL : integer := 1;
 
+-- PCIEXP interface
+ constant CFG_PCIEXP : integer := 0;
+ constant CFG_PCIE_TYPE : integer := 0;
+ constant CFG_PCIE_SIM_MAS : integer := 0;
+ constant CFG_PCIEXPVID : integer := 16#0#;
+ constant CFG_PCIEXPDID : integer := 16#0#;
+  constant CFG_NO_OF_LANES : integer := 1;
 -- GRLIB debugging
   constant CFG_DUART : integer := 0;
 end;

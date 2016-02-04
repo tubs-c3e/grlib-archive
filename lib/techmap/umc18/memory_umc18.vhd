@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -302,7 +302,7 @@ begin
   end generate;
 
 -- pragma translate_off
-  a_to_high : if (abits > 12) or (dbits > 40) generate
+  a_to_high : if (abits > 11) or (dbits > 40) generate
     x : process
     begin
       assert false

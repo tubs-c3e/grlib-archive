@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -38,10 +38,13 @@ package spi is
     spisel  : std_ulogic;
     astart  : std_ulogic;
     cstart  : std_ulogic;
+    ignore  : std_ulogic;
   end record;
 
-  constant spi_in_none : spi_in_type := ('0', '0', '0', '0', '0', '0');
-  
+  type spi_in_vector is array (natural range <>) of spi_in_type;
+
+  constant spi_in_none : spi_in_type := ('0', '0', '0', '0', '0', '0', '0');
+
   type spi_out_type is record
     miso     : std_ulogic;
     misooen  : std_ulogic;
@@ -55,9 +58,11 @@ package spi is
     aready   : std_ulogic;
   end record;
 
+  type spi_out_vector is array (natural range <>) of spi_out_type;
+
   constant spi_out_none : spi_out_type := ('0', '0', '0', '0', '0', '0',
                                            (others => '0'), '0', '0', '0');
-  
+
   -- SPI master/slave controller
   component spictrl
     generic (
@@ -84,7 +89,8 @@ package spi is
       automask0 : integer                    := 0;
       automask1 : integer                    := 0;
       automask2 : integer                    := 0;
-      automask3 : integer                    := 0
+      automask3 : integer                    := 0;
+      ignore    : integer range 0 to 1       := 0
       );
     port (
       rstn   : in std_ulogic;
@@ -138,7 +144,7 @@ package spi is
       spio   : out spi_out_type
       );
   end component;
-  
+
   component spi2ahb_apb
     generic (
       -- AHB Configuration
@@ -217,7 +223,7 @@ package spi is
 
   constant spimctrl_out_none : spimctrl_out_type :=
     ('0', '1', '0', '1', '1', '1', '0', '0');
-  
+
   component spimctrl
     generic (
       hindex      : integer := 0;

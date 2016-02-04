@@ -2,20 +2,19 @@ devices
 arith 
 memctrl
 grfpu grlfpu grfpc grlfpc 
-grfpcft grlfpcft
 grfpc4 grlfpc4
 srmmu
-leon3 leon3v1 leon3ftv2
+leon3 leon3v3
 leon4 leon4v0
 irqmp
-l2cache
+l2cache/v2 l2cache/v2-pkg
 can 
 hcan 
 misc 
 ambatest 
 net 
 pci 
-pcif 
+pci/pcif
 uart 
 sim 
 jtag 
@@ -35,3 +34,6 @@ iommu
 i2c
 spi
 nand
+mma
+clk2x
+grdmac

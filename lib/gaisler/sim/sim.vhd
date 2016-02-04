@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -57,7 +57,8 @@ package sim is
     abits: Positive := 10;		-- Default 10 address bits (1 Kbyte)
     echk : integer := 0;		-- Generate EDAC checksum
     tacc : integer := 10;		-- access time (ns)
-    fname : string := "ram.dat");	-- File to read from
+    fname : string := "ram.dat";	-- File to read from
+    clear : integer := 0);		-- Clear memory
   port (  
     a : in std_logic_vector(abits-1 downto 0);
     d : inout std_logic_vector(15 downto 0);
@@ -84,6 +85,104 @@ package sim is
   function buskeep(signal v : in std_logic_vector) return std_logic_vector;
   function buskeep(signal c : in std_logic) return std_logic;
 
+  component ddrram is
+    generic (
+      width: integer := 32;
+      abits: integer range 12 to 14 := 12;
+      colbits: integer range 8 to 13 := 8;
+      rowbits: integer range 1 to 14 := 12;
+      implbanks: integer range 1 to 4 := 1;
+      fname: string;
+      lddelay: time := (0 ns);
+      speedbin: integer range 0 to 5 := 0;     -- 0:DDR200,1:266,2:333,3:400C,4:400B,5:400A
+      density: integer range 0 to 3 := 0;  -- 0:128Mbit 1:256Mbit 2:512Mbit 3:1Gbit / chip
+      igndqs: integer range 0 to 1 := 0
+      );
+    port (
+      ck: in std_ulogic;
+      cke: in std_ulogic;
+      csn: in std_ulogic;
+      rasn: in std_ulogic;
+      casn: in std_ulogic;
+      wen: in std_ulogic;
+      dm: in std_logic_vector(width/8-1 downto 0);
+      ba: in std_logic_vector(1 downto 0);
+      a: in std_logic_vector(abits-1 downto 0);
+      dq: inout std_logic_vector(width-1 downto 0);
+      dqs: inout std_logic_vector(width/8-1 downto 0)
+      );
+  end component;
+
+  component ddr2ram is
+    generic (
+      width: integer := 32;
+      abits: integer range 13 to 16 := 13;
+      babits: integer range 2 to 3 := 3;
+      colbits: integer range 9 to 11 := 9;
+      rowbits: integer range 1 to 16 := 13;
+      implbanks: integer range 1 to 8 := 1;
+      fname: string;
+      lddelay: time := (0 ns);
+      -- Speed bins: 0:DDR2-400C,1:400B,2:533C,3:533B,4:667D,5:667C,6:800E,7:800D,8:800C
+      --   9:800+tRAS=40ns
+      speedbin: integer range 0 to 9 := 0;
+      density: integer range 1 to 5 := 3;  -- 1:256M 2:512M 3:1G 4:2G 5:4G bits/chip
+      pagesize: integer range 1 to 2 := 1  -- 1K/2K page size (controls tRRD)
+      );
+    port (
+      ck: in std_ulogic;
+      ckn: in std_ulogic;
+      cke: in std_ulogic;
+      csn: in std_ulogic;
+      odt: in std_ulogic;
+      rasn: in std_ulogic;
+      casn: in std_ulogic;
+      wen: in std_ulogic;
+      dm: in std_logic_vector(width/8-1 downto 0);
+      ba: in std_logic_vector(babits-1 downto 0);
+      a: in std_logic_vector(abits-1 downto 0);
+      dq: inout std_logic_vector(width-1 downto 0);
+      dqs: inout std_logic_vector(width/8-1 downto 0);
+      dqsn: inout std_logic_vector(width/8-1 downto 0)
+      );
+  end component;
+
+  component ddr3ram is
+    generic (
+      width: integer := 32;
+      abits: integer range 13 to 16 := 13;
+      colbits: integer range 9 to 12 := 10;
+      rowbits: integer range 1 to 16 := 13;
+      implbanks: integer range 1 to 8 := 1;
+      fname: string;
+      lddelay: time := (0 ns);
+      ldguard: integer range 0 to 1 := 0;
+      -- Speed bins: 0-1:800E-D, 2-4:1066G-E 5-8:1333J-F 9-12:1600K-G
+      speedbin: integer range 0 to 12 := 0;
+      density: integer range 2 to 6 := 3;  -- 2:512M 3:1G 4:2G 5:4G 6:8G bits/chip
+      pagesize: integer range 1 to 2 := 1;  -- 1K/2K page size (controls tRRD)
+      changeendian: integer range 0 to 32 := 0
+      );
+    port (
+      ck: in std_ulogic;
+      ckn: in std_ulogic;
+      cke: in std_ulogic;
+      csn: in std_ulogic;
+      odt: in std_ulogic;
+      rasn: in std_ulogic;
+      casn: in std_ulogic;
+      wen: in std_ulogic;
+      dm: in std_logic_vector(width/8-1 downto 0);
+      ba: in std_logic_vector(2 downto 0);
+      a: in std_logic_vector(abits-1 downto 0);
+      resetn: in std_ulogic;
+      dq: inout std_logic_vector(width-1 downto 0);
+      dqs: inout std_logic_vector(width/8-1 downto 0);
+      dqsn: inout std_logic_vector(width/8-1 downto 0);
+      doload: in std_ulogic := '1'
+      );
+  end component;
+
   component phy is
     generic(
       address       : integer range 0 to 31 := 0;
@@ -100,7 +199,8 @@ package sim is
       base1000_x_hd : integer range 0 to 1  := 0;
       base1000_t_fd : integer range 0 to 1  := 1;
       base1000_t_hd : integer range 0 to 1  := 1;
-      rmii          : integer range 0 to 1  := 0
+      rmii          : integer range 0 to 1  := 0;
+      rgmii         : integer range 0 to 1  := 0
       );
     port(
       rstn     : in std_logic;
@@ -119,6 +219,40 @@ package sim is
       gtx_clk  : in std_logic
       );
   end component;
+
+  component phy_sgmii is
+    generic (
+      INSTANCE_NUMBER          : integer := 0
+    );
+    port (
+      -- Physical Interface (Transceiver)
+      --------------------------------
+      txp                     : in  std_logic;
+      txn                     : in  std_logic;
+      rxp                     : out std_logic;
+      rxn                     : out std_logic;
+      -- GMII Interface
+      -----------------
+      gmii_tx_clk             : out std_logic;
+      gmii_rx_clk             : in std_logic;
+      gmii_txd                : out std_logic_vector(7 downto 0);
+      gmii_tx_en              : out std_logic;
+      gmii_tx_er              : out std_logic;
+      gmii_rxd                : in std_logic_vector(7 downto 0);
+      gmii_rx_dv              : in std_logic;
+      gmii_rx_er              : in std_logic;
+      -- Test bench speed selection
+      -----------------------------
+      speed_is_10_100         : in std_logic;
+      speed_is_100            : in std_logic;
+      -- Test Bench Semaphores
+      ------------------------
+      configuration_finished  : in  boolean;
+      tx_monitor_finished     : out boolean;
+      rx_monitor_finished     : out boolean
+      );
+  end component;
+
 
   procedure leon3_subtest(subtest : integer);
   procedure mctrl_subtest(subtest : integer);
@@ -374,7 +508,21 @@ package sim is
       ahbso: in ahb_slv_out_type
       );
   end component;
-  
+
+  component spwtrace is
+    generic (name: string );
+    port (d,s: in std_ulogic);
+  end component;
+
+  component spwtracev is
+    generic (
+      width: integer := 8;
+      prefix: string := "SPW#";
+      lono: integer := 0
+      );
+    port (d,s: in std_logic_vector(width-1 downto 0));
+  end component;
+
   procedure ps2_device (
     signal clk      : inout std_logic;
     signal data     : inout std_logic;

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,9 @@ use grlib.amba.all;
 use grlib.stdlib.all;
 library gaisler;
 use gaisler.mmuconfig.all;
+library techmap;
+use techmap.gencomp.all;
+
 package mmuiface is
 
 type mmutlbcam_in_type is record
@@ -87,6 +90,8 @@ type mmudc_in_type is record
 
   fsread           : std_logic;
   mmctrl1          : mmctrl_type1;
+
+  testin           : std_logic_vector(TESTIN_WIDTH-1 downto 0);
 end record;
 
 type mmudc_out_type is record
@@ -206,6 +211,8 @@ type mmutlb_in_type is record
   s2valid     : std_logic;
   
   mmctrl1     : mmctrl_type1;
+
+  testin      : std_logic_vector(TESTIN_WIDTH-1 downto 0);
 end record;
 type mmutlbi_a is array (natural range <>) of mmutlb_in_type;
 
@@ -222,7 +229,20 @@ type mmutlbfault_out_type is record
   fault_isid       : mmu_idcache;
   fault_addr       : std_logic_vector(31 downto 0);
 end record;
-  
+
+constant mmutlbfault_out_zero : mmutlbfault_out_type := (
+  fault_pro    => '0',
+  fault_pri    => '0',
+  fault_access => '0',
+  fault_mexc   => '0',
+  fault_trans  => '0',
+  fault_inv    => '0',
+  fault_lvl    => (others => '0'),
+  fault_su     => '0',
+  fault_read   => '0',
+  fault_isid   => id_icache,
+  fault_addr   => (others => '0'));
+
 type mmutlb_out_type is record
   transdata   : mmuidc_data_out_type;
   fault       : mmutlbfault_out_type;

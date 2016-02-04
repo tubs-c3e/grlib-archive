@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -77,6 +77,12 @@ begin
   rhu : if (tech = rhumc) generate
     x0 : rhumc_outpad generic map (level, slew, voltage, strength) port map (pad, i);
   end generate;
+  saed : if (tech = saed32) generate
+    x0 : saed32_outpad generic map (level, slew, voltage, strength) port map (pad, i);
+  end generate;
+  dar  : if (tech = dare) generate
+    x0 : dare_outpad generic map (level, slew, voltage, strength) port map (pad, i);
+  end generate;
   ihp : if (tech = ihp25) generate
     x0 : ihp25_outpad generic map (level, slew, voltage, strength) port map (pad, i);
   end generate;
@@ -108,7 +114,7 @@ begin
   end generate;
   ut90nhbd : if (tech = ut90) generate
     x0 : ut90nhbd_outpad generic map (level, slew, voltage, strength)
-         port map(pad, i);
+         port map(pad, i, cfgi(0));
   end generate;
   
 end;

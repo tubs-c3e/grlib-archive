@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ entity leon3mp is
     ddr_cas        : out   std_ulogic;                     -- cas
     ddr_dm         : out   std_logic_vector(1 downto 0);   -- dm
     ddr_dqs        : inout std_logic_vector(1 downto 0);   -- dqs
---    ddr_dqsn       : inout std_logic_vector(1 downto 0);   -- dqsn
+    ddr_dqsn       : inout std_logic_vector(1 downto 0);   -- dqsn
     ddr_ad         : out   std_logic_vector(12 downto 0);  -- address
     ddr_ba         : out   std_logic_vector(2 downto 0);   -- bank address
     ddr_dq         : inout std_logic_vector(15 downto 0);  -- data
@@ -124,7 +124,6 @@ end;
 architecture rtl of leon3mp is
   signal vcc : std_logic;
   signal gnd : std_logic;
-  signal ddr_dqsn       : std_logic_vector(1 downto 0);   -- dqsn
   signal ddr_clk_fb_out : std_logic;
   signal ddr_clk_fb     : std_logic;
 
@@ -221,8 +220,6 @@ begin
     port map (reset, clkm, lock, rstn, rstraw);
   
   clk27_pad : clkpad generic map (tech => padtech) port map (clk27, lclk); 
---  clk200_pad : inpad_ds generic map (tech => padtech, voltage => x25v) 
---  	port map (clk200_p, clk200_n, lclk200); 
 
   -- clock generator
   clkgen0 : clkgen
@@ -249,7 +246,7 @@ begin
     cpu : for i in 0 to CFG_NCPU-1 generate
       u0 : leon3s
         generic map (i, fabtech, memtech, CFG_NWIN, CFG_DSU, CFG_FPU, CFG_V8,
-                     0, CFG_MAC, pclow, 0, CFG_NWP, CFG_ICEN, CFG_IREPL, CFG_ISETS, CFG_ILINE,
+                     0, CFG_MAC, pclow, CFG_NOTAG, CFG_NWP, CFG_ICEN, CFG_IREPL, CFG_ISETS, CFG_ILINE,
                      CFG_ISETSZ, CFG_ILOCK, CFG_DCEN, CFG_DREPL, CFG_DSETS, CFG_DLINE, CFG_DSETSZ,
                      CFG_DLOCK, CFG_DSNOOP, CFG_ILRAMEN, CFG_ILRAMSZ, CFG_ILRAMADDR, CFG_DLRAMEN,
                      CFG_DLRAMSZ, CFG_DLRAMADDR, CFG_MMUEN, CFG_ITLBNUM, CFG_DTLBNUM, CFG_TLB_TYPE, CFG_TLB_REP,
@@ -347,6 +344,8 @@ begin
 ----------------------------------------------------------------------
   
   ddr2sp0 : if (CFG_DDR2SP /= 0) generate 
+    clk200_pad : inpad_ds generic map (tech => padtech, voltage => x25v) 
+      port map (clk200_p, clk200_n, lclk200); 
     ddrc0 : ddr2spa generic map ( fabtech => fabtech, memtech => memtech,
       hindex => 4, haddr => 16#400#, hmask => 16#F00#, ioaddr => 1, 
       pwron => CFG_DDR2SP_INIT, MHz => DDR2_FREQ/1000, clkmul => 5, clkdiv => 8,
@@ -380,10 +379,12 @@ begin
    	mcb3_dram_cke	=> ddr_cke,
    	mcb3_dram_dm	=> ddr_dm(0),
    	mcb3_dram_udqs	=> ddr_dqs(1),
+	mcb3_dram_udqs_n	=> ddr_dqsn(1),
    	mcb3_rzq	=> ddr_rzq,
    	mcb3_zio	=> ddr_zio,
    	mcb3_dram_udm	=> ddr_dm(1),
 	mcb3_dram_dqs	=> ddr_dqs(0),
+	mcb3_dram_dqs_n	=> ddr_dqsn(0),
    	mcb3_dram_ck	=> ddr_clk,
    	mcb3_dram_ck_n	=> ddr_clkb,
 	ahbsi		=> ahbsi,
@@ -578,7 +579,8 @@ begin
 
   ahbramgen : if CFG_AHBRAMEN = 1 generate
     ahbram0 : ahbram
-      generic map (hindex => 3, haddr => CFG_AHBRADDR, tech => CFG_MEMTECH, kbytes => CFG_AHBRSZ)
+      generic map (hindex => 3, haddr => CFG_AHBRADDR, tech => CFG_MEMTECH,
+                   kbytes => CFG_AHBRSZ, pipe => CFG_AHBRPIPE)
       port map (rstn, clkm, ahbsi, ahbso(3));
   end generate;
   nram : if CFG_AHBRAMEN = 0 generate ahbso(3) <= ahbs_none; end generate;
@@ -596,12 +598,10 @@ begin
 -----------------------------------------------------------------------
 
 -- pragma translate_off
-  x : report_version
+  x : report_design
     generic map (
       msg1 => "LEON3 Demonstration design for Xilinx Spartan6 SP601 board",
-      msg2 => "GRLIB Version " & tost(LIBVHDL_VERSION/1000) & "." & tost((LIBVHDL_VERSION mod 1000)/100)
-        & "." & tost(LIBVHDL_VERSION mod 100) & ", build " & tost(LIBVHDL_BUILD),
-      msg3 => "Target technology: " & tech_table(fabtech) & ",  memory library: " & tech_table(memtech),
+      fabtech => tech_table(fabtech), memtech => tech_table(memtech),
       mdel => 1
       );
 -- pragma translate_on

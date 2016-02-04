@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,8 @@ entity greth_rx is
     nsync          : integer range 1 to 2 := 2;
     rmii           : integer range 0 to 1 := 0;
     multicast      : integer range 0 to 1 := 0;
-    maxsize        : integer := 1500 
+    maxsize        : integer := 1500;
+    gmiimode       : integer range 0 to 1 := 0
     );
   port(
     rst            : in  std_ulogic;
@@ -97,7 +98,7 @@ architecture rtl of greth_rx is
   signal rxrst      : std_ulogic;
   signal vcc        : std_ulogic;
 
-  attribute sync_set_reset : string;
+  -- attribute sync_set_reset : string;
   attribute sync_set_reset of rxrst : signal is "true";
 
 begin
@@ -351,9 +352,23 @@ begin
     
   end process;
 
-  rxregs : process(clk) is
-  begin
-    if rising_edge(clk) then r <= rin; end if;
-  end process;
+  gmiimode0 : if gmiimode = 0 generate
+     rxregs0 : process(clk) is
+     begin
+       if rising_edge(clk) then
+         r <= rin;
+       end if;
+     end process;
+  end generate;
+
+  gmiimode1 : if gmiimode = 1 generate
+     rxregs1 : process(clk) is
+     begin
+       if rising_edge(clk) then
+         if (rxi.rx_en = '1' or rxrst = '0') then r <= rin; end if;
+       end if;
+     end process;
+  end generate;
+
 
 end architecture;

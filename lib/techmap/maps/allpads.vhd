@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -431,6 +431,53 @@ component rhumc_toutpad
   port (pad : out std_logic; i, en : in std_logic);
 end component;
 
+component saed32_inpad 
+  generic (level : integer := 0; voltage : integer := 0; filter : integer := 0);
+  port (pad : in std_logic; o : out std_logic);
+end component; 
+
+component saed32_iopad 
+  generic (level : integer := 0; slew : integer := 0;
+	   voltage : integer := 0; strength : integer := 0);
+  port (pad : inout std_logic; i, en : in std_logic; o : out std_logic);
+end component;
+
+component saed32_outpad 
+  generic (level : integer := 0; slew : integer := 0;
+	   voltage : integer := 0; strength : integer := 0);
+  port (pad : out std_logic; i : in std_logic);
+end component;
+
+component saed32_toutpad 
+  generic (level : integer := 0; slew : integer := 0;
+	   voltage : integer := 0; strength : integer := 0);
+  port (pad : out std_logic; i, en : in std_logic);
+end component;
+
+component dare_inpad 
+  generic (level : integer := 0; voltage : integer := 0; filter : integer := 0);
+  port (pad : in std_logic; o : out std_logic);
+end component; 
+
+component dare_iopad 
+  generic (level : integer := 0; slew : integer := 0;
+	   voltage : integer := 0; strength : integer := 0);
+  port (pad : inout std_logic; i, en : in std_logic; o : out std_logic);
+end component;
+
+component dare_outpad 
+  generic (level : integer := 0; slew : integer := 0;
+	   voltage : integer := 0; strength : integer := 0);
+  port (pad : out std_logic; i : in std_logic);
+end component;
+
+component dare_toutpad 
+  generic (level : integer := 0; slew : integer := 0;
+	   voltage : integer := 0; strength : integer := 0);
+  port (pad : out std_logic; i, en : in std_logic);
+end component;
+
+
 component umc_inpad 
   generic (level : integer := 0; voltage : integer := 0; filter : integer := 0);
   port (pad : in std_logic; o : out std_logic);
@@ -605,7 +652,10 @@ component ut130hbd_lvds_combo
   port (odpadp, odpadn, ospadp, ospadn : out std_logic_vector(0 to width-1); 
         odval, osval, en : in std_logic_vector(0 to width-1); 
 	idpadp, idpadn, ispadp, ispadn : in std_logic_vector(0 to width-1);
-	idval, isval : out std_logic_vector(0 to width-1));
+	idval, isval : out std_logic_vector(0 to width-1);
+        powerdown : in std_logic_vector(0 to width-1);
+        powerdownrx : in std_logic_vector(0 to width-1);
+	lvdsref : out std_logic);
 end component;
 
 component ut90nhbd_inpad is
@@ -628,7 +678,8 @@ component ut90nhbd_iopad  is
     pad      : inout std_ulogic;
     i        : in std_ulogic;
     en       : in std_ulogic;
-    o        : out std_ulogic);
+    o        : out std_ulogic;
+    slewctrl : in  std_ulogic);
 end component;
 
 component ut90nhbd_outpad is
@@ -639,7 +690,8 @@ component ut90nhbd_outpad is
     strength : integer := 0);
   port(
     pad      : out std_ulogic;
-    i        : in std_ulogic);
+    i        : in std_ulogic;
+    slewctrl : in std_ulogic);
 end component;
 
 component ut90nhbd_toutpad  is
@@ -651,7 +703,8 @@ component ut90nhbd_toutpad  is
   port (
     pad      : out std_ulogic;
     i        : in  std_ulogic;
-    en       : in  std_ulogic);
+    en       : in  std_ulogic;
+    slewctrl : in  std_ulogic);
 end component;
 
 component rhumc_lvds_combo 
@@ -660,7 +713,9 @@ component rhumc_lvds_combo
         odval, osval, en : in std_logic_vector(0 to width-1); 
 	idpadp, idpadn, ispadp, ispadn : in std_logic_vector(0 to width-1);
 	idval, isval : out std_logic_vector(0 to width-1);
-	lvdsref : in std_logic);
+        powerdown : in std_logic_vector(0 to width-1);
+        powerdownrx : in std_logic_vector(0 to width-1);
+	lvdsref : out std_logic);
 end component;
 
 component umc_lvds_combo 

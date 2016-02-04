@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 library grlib;
+use grlib.config_types.all;
+use grlib.config.all;
 use grlib.stdlib.all;
 library techmap;
 use techmap.gencomp.all;
@@ -41,7 +43,8 @@ entity mmu is
     dtlbnum   : integer range 2 to 64 := 8;
     tlb_type  : integer range 0 to 3 := 1;
     tlb_rep   : integer range 0 to 1 := 0;
-    mmupgsz   : integer range 0 to 5  := 0
+    mmupgsz   : integer range 0 to 5  := 0;
+    ramcbits  : integer := 1
     );
   port (
     rst  : in std_logic;
@@ -54,7 +57,11 @@ entity mmu is
     mmuico : out mmuic_out_type;
     
     mcmmo  : in  memory_mm_out_type;
-    mcmmi  : out memory_mm_in_type
+    mcmmi  : out memory_mm_in_type;
+
+    ramcclk : in  std_ulogic := '0';
+    ramcin  : in  std_logic_vector(2*ramcbits-1 downto 0) := (others => '0');
+    ramcout : out std_logic_vector(2*ramcbits-1 downto 0)
     );
 end mmu;
 
@@ -76,12 +83,16 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
     flush_op  : std_logic;
     diag_op   : std_logic;
   end record;
-  
+
+  constant mmu_op_none : mmu_op := ('0', '0', '0');
+
   type mmu_cmbpctrl is record
     tlbowner     : mmu_idcache;
     tlbactive    : std_logic;
     op           : mmu_op;
   end record;
+
+  constant mmu_cmbpctrl_none : mmu_cmbpctrl := (id_icache, '0', mmu_op_none);
 
   type mmu_rtype is record
     cmb_s1          : mmu_cmbpctrl; 
@@ -99,6 +110,19 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
     mmctrl2       : mmctrl_type2;
   end record;
 
+  constant RESET_ALL : boolean := GRLIB_CONFIG_ARRAY(grlib_sync_reset_enable_all) = 1;
+  constant RRES : mmu_rtype := (
+    cmb_s1    =>  mmu_cmbpctrl_none,
+    cmb_s2    =>  mmu_cmbpctrl_none,
+    splt_is1  =>  mmu_cmbpctrl_none,
+    splt_is2  =>  mmu_cmbpctrl_none,
+    splt_ds1  =>  mmu_cmbpctrl_none,
+    splt_ds2  =>  mmu_cmbpctrl_none,
+    twactive  => '0',
+    twowner   => id_icache,
+    flush     => '0',
+    mmctrl2   => mmctrl2_zero);
+
   signal r, c   : mmu_rtype;
   
   -- tlb
@@ -108,7 +132,8 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
       entries  : integer range 2 to 64 := 8;
       tlb_type  : integer range 0 to 3 := 1;
       tlb_rep   : integer range 0 to 1 := 0;
-      mmupgsz   : integer range 0 to 5  := 0
+      mmupgsz   : integer range 0 to 5  := 0;
+      ramcbits  : integer := 1
       );
     port (
       rst   : in std_logic;
@@ -116,7 +141,10 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
       tlbi  : in mmutlb_in_type;
       tlbo  : out mmutlb_out_type;
       two  : in mmutw_out_type;
-      twi  : out mmutw_in_type
+      twi  : out mmutw_in_type;
+      ramcclk: in std_ulogic;
+      ramcin : in std_logic_vector(ramcbits-1 downto 0);
+      ramcout: out std_logic_vector(ramcbits-1 downto 0)
       );
   end component;
   signal tlbi_a0 : mmutlb_in_type;
@@ -148,7 +176,13 @@ constant M_ENT_CLOG     : integer := M_ENT_ILOG;     -- i/dcache tlb entries: ad
 begin  
     
   p1: process (clk)
-  begin if rising_edge(clk) then r <= c; end if;
+  begin
+    if rising_edge(clk) then
+      r <= c;
+      if RESET_ALL and (rst = '0') then
+        r <= RRES;
+      end if;
+    end if;
   end process p1;
   
 
@@ -509,32 +543,32 @@ begin
     end if;
     
     -- # reset
-    if ( rst = '0' ) then
+    if ( not RESET_ALL ) and ( rst = '0' ) then
       if M_TLB_TYPE = 0 then
-        v.splt_is1.tlbactive := '0';
-        v.splt_is2.tlbactive := '0';
-        v.splt_ds1.tlbactive := '0';
-        v.splt_ds2.tlbactive := '0';
-        v.splt_is1.op.trans_op := '0';
-        v.splt_is2.op.trans_op := '0';
-        v.splt_ds1.op.trans_op := '0';
-        v.splt_ds2.op.trans_op := '0';
-        v.splt_is1.op.flush_op := '0';
-        v.splt_is2.op.flush_op := '0';
-        v.splt_ds1.op.flush_op := '0';
-        v.splt_ds2.op.flush_op := '0';
+        v.splt_is1.tlbactive := RRES.splt_is1.tlbactive;
+        v.splt_is2.tlbactive := RRES.splt_is2.tlbactive;
+        v.splt_ds1.tlbactive := RRES.splt_ds1.tlbactive;
+        v.splt_ds2.tlbactive := RRES.splt_ds2.tlbactive;
+        v.splt_is1.op.trans_op := RRES.splt_is1.op.trans_op;
+        v.splt_is2.op.trans_op := RRES.splt_is2.op.trans_op;
+        v.splt_ds1.op.trans_op := RRES.splt_ds1.op.trans_op;
+        v.splt_ds2.op.trans_op := RRES.splt_ds2.op.trans_op;
+        v.splt_is1.op.flush_op := RRES.splt_is1.op.flush_op;
+        v.splt_is2.op.flush_op := RRES.splt_is2.op.flush_op;
+        v.splt_ds1.op.flush_op := RRES.splt_ds1.op.flush_op;
+        v.splt_ds2.op.flush_op := RRES.splt_ds2.op.flush_op;
       else
-        v.cmb_s1.tlbactive := '0';
-        v.cmb_s2.tlbactive := '0';
-        v.cmb_s1.op.trans_op := '0';
-        v.cmb_s2.op.trans_op := '0';
-        v.cmb_s1.op.flush_op := '0';
-        v.cmb_s2.op.flush_op := '0';
+        v.cmb_s1.tlbactive := RRES.cmb_s1.tlbactive;
+        v.cmb_s2.tlbactive := RRES.cmb_s2.tlbactive;
+        v.cmb_s1.op.trans_op := RRES.cmb_s1.op.trans_op;
+        v.cmb_s2.op.trans_op := RRES.cmb_s2.op.trans_op;
+        v.cmb_s1.op.flush_op := RRES.cmb_s1.op.flush_op;
+        v.cmb_s2.op.flush_op := RRES.cmb_s2.op.flush_op;
       end if;
-      v.flush := '0';
-      v.mmctrl2.valid := '0';
-      v.twactive := '0';
-      v.twowner := id_icache;
+      v.flush := RRES.flush;
+      v.mmctrl2.valid := RRES.mmctrl2.valid;
+      v.twactive := RRES.twactive;
+      v.twowner := RRES.twowner;
     end if;
     
     -- drive signals
@@ -559,6 +593,8 @@ begin
       tlbi_a0.mmctrl1   <= mmudci.mmctrl1;
       tlbi_a0.wb_op     <= '0';
     end if;
+    tlbi_a0.testin <= mmudci.testin;
+    tlbi_a1.testin <= mmudci.testin;
 
     mmudco.transdata <= mmudco_transdata;
     mmuico.transdata <= mmuico_transdata;
@@ -580,20 +616,24 @@ begin
   tlbcomb0: if M_TLB_TYPE = 1 generate
     -- i/d tlb
     ctlb0 : mmutlb
-      generic map ( tech, M_ENT_C, 0, tlb_rep, mmupgsz )
-      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0));
+      generic map ( tech, M_ENT_C, 0, tlb_rep, mmupgsz, ramcbits )
+      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0),
+                ramcclk, ramcin(ramcbits-1 downto 0), ramcout(ramcbits-1 downto 0));
       mmudco.tlbmiss   <= twi_a(0).tlbmiss;
+      ramcout(2*ramcbits-1 downto ramcbits) <= (others => '0');
   end generate tlbcomb0;
 
   tlbsplit0: if M_TLB_TYPE = 0 generate
     -- i tlb
     itlb0 : mmutlb
-      generic map ( tech, M_ENT_I, 0, tlb_rep, mmupgsz )
-      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0));
+      generic map ( tech, M_ENT_I, 0, tlb_rep, mmupgsz, ramcbits )
+      port map (rst, clk, tlbi_a0, tlbo_a0, two_a(0), twi_a(0),
+                ramcclk, ramcin(ramcbits-1 downto 0), ramcout(ramcbits-1 downto 0));
     -- d tlb
     dtlb0 : mmutlb
-      generic map ( tech, M_ENT_D, tlb_type, tlb_rep, mmupgsz )
-      port map (rst, clk, tlbi_a1, tlbo_a1, two_a(1), twi_a(1));
+      generic map ( tech, M_ENT_D, tlb_type, tlb_rep, mmupgsz, ramcbits )
+      port map (rst, clk, tlbi_a1, tlbo_a1, two_a(1), twi_a(1),
+                ramcclk, ramcin(2*ramcbits-1 downto ramcbits), ramcout(2*ramcbits-1 downto ramcbits));
       mmudco.tlbmiss   <= twi_a(1).tlbmiss;
   end generate tlbsplit0;
 

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -62,8 +62,29 @@ package libjtagcom is
     tapo : in tap_out_type;
     tapi : out tap_in_type;
     dmao : in  ahb_dma_out_type;    
-    dmai : out ahb_dma_in_type
+    dmai : out ahb_dma_in_type;
+    tck  : in std_ulogic;
+    trst : in std_ulogic
     );
+  end component;
+
+  component jtagcom2 is
+    generic (
+      gatetech: integer := 0;
+      isel   : integer range 0 to 1 := 0;
+      ainst  : integer range 0 to 255 := 2;
+      dinst  : integer range 0 to 255 := 3);
+    port (
+      rst  : in std_ulogic;
+      clk  : in std_ulogic;
+      tapo : in tap_out_type;
+      tapi : out tap_in_type;
+      dmao : in  ahb_dma_out_type;
+      dmai : out ahb_dma_in_type;
+      tckp : in std_ulogic;
+      tckn : in std_ulogic;
+      trst : in std_ulogic
+      );
   end component;
 
 end;  

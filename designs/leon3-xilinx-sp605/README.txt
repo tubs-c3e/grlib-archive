@@ -3,15 +3,16 @@ This leon3 design is tailored to the Xilinx SP605 Spartan6 board
 Simulation and synthesis
 ------------------------
 
-The design uses the Xilinx MIG memory interface with an AHB-2.0
-interface. The MIG source code cannot be distributed due to the
-prohibitive Xilinx license, so the MIG must be re-generated with 
+The design uses the Xilinx MIG memory interface and Xilinx PCI Express endpoint
+with an AHB-2.0 interface. The source code cannot be distributed due to the
+prohibitive Xilinx license, so they must be re-generated with 
 coregen before simulation and synthesis can be done.
 
-To generate the MIG using ISE13 and install the Xilinx unisim simulation
+To generate the MIG and PCI Express using ISE13 and install the Xilinx unisim simulation
 library, do as follows:
 
   make mig
+  make pcie(do if PCI Express is enabled)
   make install-secureip
 
 To generate the MIG using ISE14 and install the Xilinx unisim simulation
@@ -22,13 +23,13 @@ library, do as follows:
 
 This will ONLY work with correct version of ISE installed, and the XILINX variable
 properly set in the shell. For ISE13 it is recommened to use the 'ise' make target
-and for ISE14 to use the 'planAhead' target. To synthesize the design, do
+and for ISE14 to use the 'planahead' target. To synthesize the design, do
 
   make ise (ISE13)
 
 or
 
-  make planAhead (ISE14)
+  make planahead (ISE14)
 
 and then
 
@@ -41,7 +42,7 @@ Design specifics
 
 * System reset is mapped to the CPU RESET button
 
-* The AHB and processor is clocked by a 60 MHz clock, generated
+* The AHB and processor is clocked by a 55 MHz clock, generated
   from the 33 MHz SYSACE clock using a DCM. You can change the frequency
   generation in the clocks menu of xconfig. The DDR3 (MIG) controller
   runs at 667 MHz.
@@ -65,8 +66,6 @@ Design specifics
   make distclean vsim
 
   Modelsim v6.6e or newer is required to build the secure IP models.
-  Note that the regular leon3 test bench cannot be run in simulation
-  as the DDR3 model lacks data pre-load.
 
 * The application UART1 is connected to the USB/UART connector
 

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -115,7 +115,9 @@ component clkgen_virtex7
     freq     : integer := 25000);
   port (
     clkin   : in  std_logic;
-    clk     : out std_logic;			-- main clock
+    clk     : out std_logic;      -- main clock
+    clk90   : out std_ulogic;     -- main clock 90deg
+    clkio   : out std_ulogic;     -- IO ref clock
     cgi     : in clkgen_in_type;
     cgo     : out clkgen_out_type);
 end component; 
@@ -476,7 +478,7 @@ end component;
     locked  : out std_ulogic);
   end component;
 
-  component clkgen_dare
+  component clkgen_rhumc
   port (
     clkin   : in  std_logic;
     clk     : out std_logic;			-- main clock
@@ -487,9 +489,88 @@ end component;
     cgo     : out clkgen_out_type;
     clk4x   : out std_logic;			-- 4x clock
     clk1xu  : out std_logic;			-- unscaled 1X clock
-    clk2xu  : out std_logic);			-- unscaled 2X clock
-  end component; 
+    clk2xu  : out std_logic			-- unscaled 2X clock
+    );
+  end component;
 
+component clkinv_saed32
+  port(
+    i  :  in  std_ulogic;
+    o  :  out std_ulogic);
+end component;
+
+component clkand_saed32
+  port(
+    i      :  in  std_ulogic;
+    en     :  in  std_ulogic;
+    o      :  out std_ulogic;
+    tsten  :  in  std_ulogic := '0'
+  );
+end component;
+
+component clkmux_saed32
+  port (
+    i0, i1  :  in  std_ulogic;
+    sel     :  in  std_ulogic;
+    o       :  out std_ulogic);
+end component;
+
+  component clkgen_saed32
+  port (
+    clkin   : in  std_logic;
+    clk     : out std_logic;			-- main clock
+    clk2x   : out std_logic;			-- 2x clock
+    sdclk   : out std_logic;			-- SDRAM clock
+    pciclk  : out std_logic;			-- PCI clock
+    cgi     : in clkgen_in_type;
+    cgo     : out clkgen_out_type;
+    clk4x   : out std_logic;			-- 4x clock
+    clk1xu  : out std_logic;			-- unscaled 1X clock
+    clk2xu  : out std_logic 			-- unscaled 2X clock
+    );
+  end component;
+
+component clkinv_dare
+  port(
+    i  :  in  std_ulogic;
+    o  :  out std_ulogic);
+end component;
+
+component clkand_dare
+  port(
+    i      :  in  std_ulogic;
+    en     :  in  std_ulogic;
+    o      :  out std_ulogic;
+    tsten  :  in  std_ulogic := '0'
+  );
+end component;
+
+component clkmux_rhumc
+  port (
+    i0, i1  :  in  std_ulogic;
+    sel     :  in  std_ulogic;
+    o       :  out std_ulogic);
+end component;
+
+  component clkgen_dare
+  generic (
+    noclkfb : integer := 1
+  );
+  port (
+    clkin   : in  std_logic;
+    clk     : out std_logic;			-- main clock
+    clk2x   : out std_logic;			-- 2x clock
+    sdclk   : out std_logic;			-- SDRAM clock
+    pciclk  : out std_logic;			-- PCI clock
+    cgi     : in clkgen_in_type;
+    cgo     : out clkgen_out_type;
+    clk4x   : out std_logic;			-- 4x clock
+    clk1xu  : out std_logic;			-- unscaled 1X clock
+    clk2xu  : out std_logic; 			-- unscaled 2X clock
+    clk8x   : out std_logic
+    );
+  end component;
+  
   component clkgen_easic90
     generic (
       clk_mul   : integer;
@@ -506,6 +587,14 @@ end component;
       clkn     : out std_ulogic;
       lock     : out std_ulogic); 
   end component;
+
+component clkmux_dare
+  port(
+    i0     :  in  std_ulogic;
+    i1     :  in  std_ulogic;
+    sel    :  in  std_ulogic;
+    o      :  out std_ulogic);
+end component;
 
 component clkmux_rhlib18t
   port(
@@ -578,6 +667,8 @@ component clkgen_ut130hbd
     clk     : out std_ulogic;			-- main clock
     clkn    : out std_ulogic;			-- inverted main clock
     clk2x   : out std_ulogic;			-- double clock
+    clk4x   : out std_ulogic;			
+    clk8x   : out std_ulogic;			
     sdclk   : out std_ulogic;			-- SDRAM clock
     pciclk  : out std_ulogic;			-- PCI clock
     cgi     : in clkgen_in_type;

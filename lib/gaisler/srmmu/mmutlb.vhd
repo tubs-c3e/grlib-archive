@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 library grlib;
+use grlib.config_types.all;
+use grlib.config.all;
 use grlib.amba.all;
 use grlib.stdlib.all;
 library techmap;
@@ -41,7 +43,8 @@ entity mmutlb is
     entries  : integer range 2 to 64 := 8;
     tlb_type  : integer range 0 to 3 := 1;
     tlb_rep  : integer range 0 to 1 := 1;
-    mmupgsz   : integer range 0 to 5  := 0
+    mmupgsz   : integer range 0 to 5  := 0;
+    ramcbits: integer := 1
   );
   port (
     rst   : in  std_logic;
@@ -49,13 +52,17 @@ entity mmutlb is
     tlbi  : in  mmutlb_in_type;
     tlbo  : out mmutlb_out_type;
     two   : in  mmutw_out_type;
-    twi   : out mmutw_in_type
+    twi   : out mmutw_in_type;
+    ramcclk: in std_ulogic;
+    ramcin : in std_logic_vector(ramcbits-1 downto 0);
+    ramcout: out std_logic_vector(ramcbits-1 downto 0)
     );
 end mmutlb;
 
 architecture rtl of mmutlb is
 
-  constant M_TLB_FASTWRITE : integer range 0 to 3 := conv_integer(conv_std_logic_vector(tlb_type,2) and conv_std_logic_vector(2,2));   -- fast writebuffer
+  constant M_TLB_FASTWRITE : integer range 0 to 3 :=
+    conv_integer(conv_std_logic_vector(tlb_type,2) and conv_std_logic_vector(2,2));   -- fast writebuffer
   
   constant entries_log : integer := log2(entries);
   constant entries_max : std_logic_vector(entries_log-1 downto 0) := 
@@ -84,6 +91,28 @@ architecture rtl of mmutlb is
       sync_isw    : std_logic;
       tlbmiss     : std_logic;
   end record;
+  
+  constant RESET_ALL : boolean := GRLIB_CONFIG_ARRAY(grlib_sync_reset_enable_all) = 1;
+  constant RRES : tlb_rtype := (
+    s2_tlbstate    => idle,
+    s2_entry       => (others => '0'),
+    s2_hm          => '0',
+    s2_needsync    => '0',
+    s2_data        => (others => '0'),
+    s2_isid        => id_icache,
+    s2_su          => '0',
+    s2_read        => '0',
+    s2_flush       => '0',
+    s2_ctx         => (others => '0'),
+    walk_use       => '0',
+    walk_transdata => mmuidco_zero,
+    walk_fault     => mmutlbfault_out_zero,
+    nrep           => (others => '0'),
+    tpos           => (others => '0'),
+    touch          => '0',
+    sync_isw       => '0',
+    tlbmiss        => '0');
+
   signal c,r   : tlb_rtype;
 
   -- tlb cams
@@ -518,7 +547,7 @@ begin
     TLB_MergeData( mmupgsz, tlbi.mmctrl1, LVL, PTE, r.s2_data, transdata.data );
     
     --# reset
-    if (rst = '0') then
+    if (not RESET_ALL) and (rst = '0') then
       v.s2_flush := '0';
       v.s2_tlbstate := idle;
       if tlb_rep = 1 then
@@ -614,7 +643,13 @@ begin
 
 
   p1: process (clk)
-  begin if rising_edge(clk) then r <= c;  end if;
+  begin
+    if rising_edge(clk) then
+      r <= c;
+      if RESET_ALL and (rst = '0') then
+        r <= RRES;
+      end if;
+    end if;
   end process p1;
 
   -- tag-cam tlb entries
@@ -626,8 +661,9 @@ begin
 
   -- data-ram syncram 
   dataram : syncram
-    generic map ( tech => tech, dbits => 30, abits => entries_log)
-    port map ( clk, dr1_addr, dr1_datain, dr1_dataout, dr1_enable, dr1_write);
+    generic map ( tech => tech, dbits => 30, abits => entries_log, custombits => ramcbits)
+    port map ( clk, dr1_addr, dr1_datain, dr1_dataout, dr1_enable, dr1_write,
+               tlbi.testin, ramcclk, ramcin, ramcout );
 
   -- lru
   lru0: if tlb_rep = 0 generate

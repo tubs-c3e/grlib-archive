@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,13 @@ entity ringosc is
 end ;
 
 architecture rtl of ringosc is
-  component ringosc_dare 
+  component ringosc_rhumc 
+   port (
+      roen  :  in    Std_ULogic;
+      roout :  out   Std_ULogic);
+  end component;
+
+  component ringosc_ut130hbd
    port (
       roen  :  in    Std_ULogic;
       roout :  out   Std_ULogic);
@@ -44,11 +50,15 @@ architecture rtl of ringosc is
 begin
 
   dr : if tech = rhumc generate
-    drx : ringosc_dare port map (roen, roout);
+    drx : ringosc_rhumc port map (roen, roout);
+  end generate;
+
+  ut130r : if tech = ut130 generate
+    ut130rx : ringosc_ut130hbd port map (roen, roout);
   end generate;
 
 -- pragma translate_off
-  gen : if tech /= rhumc generate
+  gen : if tech /= rhumc and tech /= ut130 generate
   signal tmp : std_ulogic := '0';
   begin
     tmp <= not tmp after 1 ns when roen = '1' else '0';

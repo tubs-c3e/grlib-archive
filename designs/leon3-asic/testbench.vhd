@@ -1,10 +1,10 @@
 ------------------------------------------------------------------------------
 --  LEON3 Demonstration design test bench
---  Copyright (C) 2004 Jiri Gaisler, Gaisler Research
+--  Copyright (C) 2013 Aeroflex Gaisler AB
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ library micron;
 use micron.components.all;
 use gaisler.jtagtst.all;
 
-use work.config.all;	-- configuration
+use work.config.all;  -- configuration
 
 entity testbench is
   generic (
@@ -41,16 +41,16 @@ entity testbench is
     memtech   : integer := CFG_MEMTECH;
     padtech   : integer := CFG_PADTECH;
     clktech   : integer := CFG_CLKTECH;
-    disas     : integer := CFG_DISAS;	-- Enable disassembly to console
-    dbguart   : integer := CFG_DUART;	-- Print UART on console
+    disas     : integer := CFG_DISAS; -- Enable disassembly to console
+    dbguart   : integer := CFG_DUART; -- Print UART on console
     pclow     : integer := CFG_PCLOW;
 
-    clkperiod : integer := 20;		-- system clock period
-    romwidth  : integer := 32;		-- rom data width (8/32)
-    romdepth  : integer := 20;		-- rom address depth
-    sramwidth  : integer := 32;		-- ram data width (8/16/32)
-    sramdepth  : integer := 20;		-- ram address depth
-    srambanks  : integer := 2;		-- number of ram banks
+    clkperiod : integer := 20;    -- system clock period
+    romwidth  : integer := 32;    -- rom data width (8/32)
+    romdepth  : integer := 20;    -- rom address depth
+    sramwidth  : integer := 32;   -- ram data width (8/16/32)
+    sramdepth  : integer := 20;   -- ram address depth
+    srambanks  : integer := 2;    -- number of ram banks
     testen  : integer := 0;
     scanen  : integer := 0;
     testrst : integer := 0;
@@ -61,10 +61,10 @@ end;
 architecture behav of testbench is
 
 constant promfile  : string := "prom.srec";  -- rom contents
-constant sramfile  : string := "sram.srec";  -- ram contents
-constant sdramfile : string := "sdram.srec"; -- sdram contents
+constant sramfile  : string := "ram.srec";  -- ram contents
+constant sdramfile : string := "ram.srec"; -- sdram contents
 signal clk : std_logic := '0';
-signal Rst    : std_logic := '0';			-- Reset
+signal Rst    : std_logic := '0';     -- Reset
 constant ct : integer := clkperiod/2;
 
 signal address  : std_logic_vector(27 downto 0);
@@ -87,7 +87,7 @@ signal dsuen, dsutx, dsurx, dsubre, dsuact : std_ulogic;
 signal dsurst   : std_ulogic;
 signal test     : std_ulogic;
 signal error    : std_logic;
-signal gpio	: std_logic_vector(CFG_GRGPIO_WIDTH-1 downto 0);
+signal gpio : std_logic_vector(CFG_GRGPIO_WIDTH-1 downto 0);
 signal VCC      : std_ulogic := '1';
 signal NC       : std_ulogic := 'Z';
 signal clk2     : std_ulogic := '1';
@@ -106,22 +106,40 @@ signal roen, roout, nandout, promedac : std_ulogic;
 
 constant lresp : boolean := false;
 
-signal gnd   	: std_logic_vector(3 downto 0);
+signal gnd    : std_logic_vector(3 downto 0);
 signal clksel   : std_logic_vector(1 downto 0);
 signal prom32   : std_ulogic;
 signal spw_clksel : std_logic_vector(1 downto 0);
 
-signal spw_clk	: std_ulogic := '0';
-signal spw_rxdp : std_logic_vector(0 to CFG_SPW_NUM-1);
-signal spw_rxsp : std_logic_vector(0 to CFG_SPW_NUM-1);
-signal spw_txdp : std_logic_vector(0 to CFG_SPW_NUM-1);
-signal spw_txsp : std_logic_vector(0 to CFG_SPW_NUM-1);
-signal spw_rxdn : std_logic_vector(0 to CFG_SPW_NUM-1);
-signal spw_rxsn : std_logic_vector(0 to CFG_SPW_NUM-1);
-signal spw_txdn : std_logic_vector(0 to CFG_SPW_NUM-1);
-signal spw_txsn : std_logic_vector(0 to CFG_SPW_NUM-1);
+signal spw_clk  : std_ulogic := '0';
+signal spw_rxd : std_logic_vector(0 to CFG_SPW_NUM-1);
+signal spw_rxs : std_logic_vector(0 to CFG_SPW_NUM-1);
+signal spw_txd : std_logic_vector(0 to CFG_SPW_NUM-1);
+signal spw_txs : std_logic_vector(0 to CFG_SPW_NUM-1);
+
+signal i2c_scl     : std_ulogic;
+signal i2c_sda     : std_ulogic;
+signal spi_miso    : std_logic;
+signal spi_mosi    : std_logic;
+signal spi_sck     : std_logic;
+signal spi_slvsel  : std_logic_vector(CFG_SPICTRL_SLVS-1 downto 0);
 
 signal trst,tck,tms,tdi,tdo: std_ulogic;
+
+signal gtx_clk : std_ulogic := '0';
+signal erx_clk : std_ulogic;
+signal erxd    : std_logic_vector(7 downto 0);
+signal erx_dv  : std_ulogic;
+signal etx_clk : std_ulogic;
+signal etxd    : std_logic_vector(7 downto 0);
+signal etx_en  : std_ulogic;
+signal etx_er  : std_ulogic;
+signal erx_er  : std_ulogic;
+signal erx_col : std_ulogic;
+signal erx_crs : std_ulogic;
+signal emdint  : std_ulogic;
+signal emdio   : std_logic;
+signal emdc    : std_ulogic;
 
 begin
 
@@ -142,6 +160,7 @@ begin
   gnd <= "0000";
   clk <= not clk after ct * 1 ns;
   spw_clk <= not spw_clk after ct * 1 ns;
+  gtx_clk <= not gtx_clk after 8 ns;
   rst <= dsurst;
   bexcn <= '1'; wdogn <= 'H';
   gpio(2 downto 0) <= "HHL"; 
@@ -150,24 +169,27 @@ begin
   gpio(10 downto 8) <= "HLL"; --4
   gpio(7 downto 0) <= (others => 'L');
   cb(15 downto 8) <= "HHHHHHHH";
-  spw_rxdp <= spw_txdp; spw_rxsp <= spw_txsp;
-  spw_rxdn <= spw_txdn; spw_rxsn <= spw_txsn;
+  spw_rxd <= spw_txd; spw_rxs <= spw_txs;
   roen <= '0';
   promedac <= '0';
   prom32 <= '1';
   rxd2 <= txd2;
   
   d3 : entity work.leon3mp
-        generic map ( fabtech, memtech, padtech, clktech, disas, dbguart, pclow )
-        port map (rst, clksel, clk, lock, error, wdogn, address, data, 
-	cb(7 downto 0), sdclk, sdcsn, sdwen, 
-	sdrasn, sdcasn, sddqm, dsutx, dsurx, dsuen, dsubre, dsuact, 
-	txd1, rxd1, txd2, rxd2,
-	ramsn, ramoen, rwen, oen, writen, read, iosn, romsn, brdyn, bexcn, gpio,
-	prom32, promedac,
-	spw_clksel, spw_clk, spw_rxdp, spw_rxdn, spw_rxsp, spw_rxsn, spw_txdp, spw_txdn,
-        spw_txsp, spw_txsn, gnd(0), roen, roout, test,
-        trst, tck, tms, tdi, tdo);
+        generic map ( 
+           fabtech, memtech, padtech, clktech, disas, dbguart, pclow )
+        port map (
+           rst, clksel, clk, lock, error, wdogn, address, data, 
+           cb(7 downto 0), sdclk, sdcsn, sdwen, 
+           sdrasn, sdcasn, sddqm, dsutx, dsurx, dsuen, dsubre, dsuact, 
+           txd1, rxd1, txd2, rxd2,
+           ramsn, ramoen, rwen, oen, writen, read, iosn, romsn, brdyn, bexcn, gpio, 
+           i2c_scl, i2c_sda,
+           spi_miso, spi_mosi, spi_sck, spi_slvsel,
+           prom32,
+           spw_clksel, spw_clk, spw_rxd, spw_rxs, spw_txd, spw_txs,
+           gtx_clk, erx_clk, erxd, erx_dv, etx_clk, etxd, etx_en, etx_er, erx_er, erx_col, erx_crs, emdint, emdio, emdc ,
+           test, trst, tck, tms, tdi, tdo);
 
 -- optional sdram
 
@@ -175,25 +197,25 @@ begin
   sdcke <= "11";
   sd0 : if (CFG_MCTRL_SDEN = 1) and (CFG_MCTRL_SEPBUS = 0) generate
     u0: mt48lc16m16a2 generic map (index => 0, fname => sdramfile)
-	PORT MAP(
+  PORT MAP(
             Dq => data(31 downto 16), Addr => address(14 downto 2),
             Ba => address(16 downto 15), Clk => sdclk, Cke => sdcke(0),
             Cs_n => sdcsn(0), Ras_n => sdrasn, Cas_n => sdcasn, We_n => sdwen,
             Dqm => sddqm(3 downto 2));
     u1: mt48lc16m16a2 generic map (index => 16, fname => sdramfile)
-	PORT MAP(
+  PORT MAP(
             Dq => data(15 downto 0), Addr => address(14 downto 2),
             Ba => address(16 downto 15), Clk => sdclk, Cke => sdcke(0),
             Cs_n => sdcsn(0), Ras_n => sdrasn, Cas_n => sdcasn, We_n => sdwen,
             Dqm => sddqm(1 downto 0));
     u2: mt48lc16m16a2 generic map (index => 0, fname => sdramfile)
-	PORT MAP(
+  PORT MAP(
             Dq => data(31 downto 16), Addr => address(14 downto 2),
             Ba => address(16 downto 15), Clk => sdclk, Cke => sdcke(0),
             Cs_n => sdcsn(1), Ras_n => sdrasn, Cas_n => sdcasn, We_n => sdwen,
             Dqm => sddqm(3 downto 2));
     u3: mt48lc16m16a2 generic map (index => 16, fname => sdramfile)
-	PORT MAP(
+  PORT MAP(
             Dq => data(15 downto 0), Addr => address(14 downto 2),
             Ba => address(16 downto 15), Clk => sdclk, Cke => sdcke(0),
             Cs_n => sdcsn(1), Ras_n => sdrasn, Cas_n => sdcasn, We_n => sdwen,
@@ -202,23 +224,59 @@ begin
 
   prom0 : for i in 0 to (romwidth/8)-1 generate
       sr0 : sram generic map (index => i, abits => romdepth, fname => promfile)
-	port map (address(romdepth+1 downto 2), data(31-i*8 downto 24-i*8), romsn(0),
-		  rwen(i), oen);
+  port map (address(romdepth+1 downto 2), data(31-i*8 downto 24-i*8), romsn(0),
+      rwen(i), oen);
   end generate;
 
   sram0 : for i in 0 to (sramwidth/8)-1 generate
       sr0 : sram generic map (index => i, abits => sramdepth, fname => sramfile)
-	port map (address(sramdepth+1 downto 2), data(31-i*8 downto 24-i*8), ramsn(0),
-		  rwen(0), ramoen(0));
+  port map (address(sramdepth+1 downto 2), data(31-i*8 downto 24-i*8), ramsn(0),
+      rwen(0), ramoen(0));
   end generate;
+
+  phy0 : if (CFG_GRETH = 1) generate
+   emdio <= 'H';
+   emdint <= '0';
+   p0: phy
+    generic map (
+             address       => 7,
+             extended_regs => 1,
+             aneg          => 1,
+             base100_t4    => 1,
+             base100_x_fd  => 1,
+             base100_x_hd  => 1,
+             fd_10         => 1,
+             hd_10         => 1,
+             base100_t2_fd => 1,
+             base100_t2_hd => 1,
+             base1000_x_fd => 0,
+             base1000_x_hd => 0,
+             base1000_t_fd => 0,
+             base1000_t_hd => 0,
+             rmii          => 0,
+             rgmii         => 0
+    )
+    port map(rst, emdio, etx_clk, erx_clk, erxd,
+             erx_dv, erx_er, erx_col, erx_crs, etxd,
+             etx_en, etx_er, emdc, gtx_clk);
+  
+  end generate;
+
+  spimem0: if (CFG_SPICTRL_ENABLE = 1) generate
+    s0 : spi_flash generic map (ftype => 4, debug => 0, fname => promfile,
+                                readcmd => CFG_SPIMCTRL_READCMD,
+                                dummybyte => CFG_SPIMCTRL_DUMMYBYTE,
+                                dualoutput => 0) 
+      port map (spi_sck, spi_mosi, spi_miso, spi_slvsel(0));
+  end generate spimem0;
 
    iuerr : process
    begin
      wait for 2500 ns;
      if to_x01(error) = '1' then wait on error; end if;
---     assert (to_x01(error) = '1') 
---       report "*** IU in error mode, simulation halted ***"
---         severity failure ;
+     assert (to_x01(error) = '1') 
+       report "*** IU in error mode, simulation halted ***"
+         severity failure ;
    end process;
 
   bst0: process
@@ -240,7 +298,7 @@ begin
   
   test0 :  grtestmod
     port map ( rst, clk, error, address(21 downto 2), data,
-    	       iosn, oen, writen, brdyn);
+             iosn, oen, writen, brdyn);
 
   data <= buskeep(data) after 5 ns;
   cb <= buskeep(cb) after 5 ns;
@@ -255,10 +313,10 @@ begin
     dsurst <= '0';
     wait for 500 ns;
     dsurst <= '1';
-    wait;	-- remove to run the DSU UART
+    wait; -- remove to run the DSU UART
     wait for 5010 ns;
-    txc(dsutx, 16#55#, txp);		-- sync uart
-    txc(dsutx, 16#55#, txp);		-- sync uart
+    txc(dsutx, 16#55#, txp);    -- sync uart
+    txc(dsutx, 16#55#, txp);    -- sync uart
 
 --    txc(dsutx, 16#c0#, txp);
 --    txa(dsutx, 16#90#, 16#00#, 16#00#, 16#00#, txp);

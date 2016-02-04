@@ -22,15 +22,16 @@ library, do as follows:
   make mig39
   make install-secureip
 
-This will ONLY work with correct version of ISE installed, and the XILINX variable
-properly set in the shell. For ISE13 it is recommened to use the 'ise' make target
-and for ISE14 to use the 'planAhead' target. To synthesize the design, do
+This will ONLY work with correct version of ISE installed, and the
+XILINX variable properly set in the shell. For ISE13 it is recommened
+to use the 'ise' make target and for ISE14 to use the 'planahead'
+target. To synthesize the design, do
 
   make ise (ISE13)
 
 or
 
-  make planAhead (ISE14)
+  make planahead (ISE14)
 
 and then
 
@@ -53,8 +54,11 @@ Design specifics
   the DDR2 controller runs at 250 MHz (DDR2-500).
 
 * The GRETH core is enabled and runs without problems at 100 Mbit.
-  Ethernet debug link is enabled and has IP 192.168.0.51.
+  Ethernet debug link is enabled and has IP 192.168.0.59.
   1 Gbit operation is also possible (requires grlib com release).
+  If GRETH_GBIT is to be included, do it via xconfig and not by
+  editing config.vhd directly, otherwise the appropriate constraints
+  will not be included.
 
 * 8-bit flash prom can be read at address 0. It can be programmed
   with GRMON version 1.1.16 or later.
@@ -89,38 +93,33 @@ Design specifics
   D2:     Cpu halted due to error
   D4:D3   Ethernet speed. 00=10M, 01=100M, 10=1G
 
-* If the GRUSBHC USB host controller is included then close attention must
-  be paid to the timing reports. The ULPI interface timing requirements
-  may be very difficult to meet with this FPGA device.
-
-* This template design previously contained the USB device controller.
+* This template design previously contained USB controllers.
   Due to the timing of the FPGA, the USB transceiver having an IO
   voltage of 1.8V and the design of the USB device core it is
-  unlikely that the required timing for the USB device interface can
-  be reached.
-  The kit is not suitable for use with the USBDC or USBDCL IP cores.
-
+  unlikely that the required timing for the USB interface can be
+  reached. The kit is not suitable for use with the USB IP cores.
+ 
 * Example output from GRMON is:
 
-$ grmon -eth -ip 192.168.0.59 -nb -u
+$ grmon -eth -ip 192.168.0.51 -nb -u
   
-  GRMON2 LEON debug monitor v2.0.32 internal version
+  GRMON2 LEON debug monitor v2.0.39 internal version
   
-  Copyright (C) 2012 Aeroflex Gaisler - All rights reserved.
+  Copyright (C) 2013 Aeroflex Gaisler - All rights reserved.
   For latest updates, go to http://www.gaisler.com/
   Comments or bug-reports to support@gaisler.com
   
 
 Parsing -eth
-Parsing -ip 192.168.0.59
+Parsing -ip 192.168.0.51
 Parsing -nb
 Parsing -u
 
 Commands missing help:
- debug
+ datacache
 
  Ethernet startup...
-  GRLIB build version: 4121
+  GRLIB build version: 4133
   Detected frequency:  50 MHz
   
   Component                            Vendor
@@ -144,6 +143,7 @@ Commands missing help:
   General Purpose I/O port             Aeroflex Gaisler
   General Purpose I/O port             Aeroflex Gaisler
   AHB Status Register                  Aeroflex Gaisler
+  Unknown device                       Aeroflex Gaisler
   
   Use command 'info sys' to print a detailed report of attached cores
 
@@ -159,8 +159,9 @@ grmon2> info sys
   greth0    Aeroflex Gaisler  GR Ethernet MAC    
             AHB Master 3
             APB: 80000E00 - 80000F00
-            IRQ: 12
-            edcl ip 192.168.0.59, buffer 16 kbyte
+            IRQ: 6
+            1000 Mbit capable
+            edcl ip 192.168.0.51, buffer 16 kbyte
   mctrl0    European Space Agency  LEON2 Memory Controller    
             AHB: 00000000 - 20000000
             APB: 80000000 - 80000100
@@ -201,7 +202,7 @@ grmon2> info sys
             clk0: 50.00 MHz  clk1:   inf MHz  clk2:   inf MHz  clk3:   inf MHz
   i2cmst0   Aeroflex Gaisler  AMBA Wrapper for OC I2C-master    
             APB: 80000900 - 80000A00
-            IRQ: 14
+            IRQ: 3
   gpio0     Aeroflex Gaisler  General Purpose I/O port    
             APB: 80000A00 - 80000B00
   gpio1     Aeroflex Gaisler  General Purpose I/O port    
@@ -209,25 +210,10 @@ grmon2> info sys
   gpio2     Aeroflex Gaisler  General Purpose I/O port    
             APB: 80000C00 - 80000D00
   ahbstat0  Aeroflex Gaisler  AHB Status Register    
-            APB: 80000F00 - 80001000
-            IRQ: 7
-  
-grmon2> lo /usr/local32/apps/bench/leon3/dhry.leon3
-  40000000 .text                     54.7kB /  54.7kB   [===============>] 100%
-  4000DAF0 .data                      2.7kB /   2.7kB   [===============>] 100%
-  Total size: 57.44kB (18.10Mbit/s)
-  Entry point 0x40000000
-  Image /usr/local32/apps/bench/leon3/dhry.leon3 loaded
-  
-grmon2> run
-Execution starts, 1000000 runs through Dhrystone
-Total execution time:                          6.2 s
-Microseconds for one run through Dhrystone:    6.2 
-Dhrystones per Second:                      161800.7 
-
-Dhrystones MIPS      :                        92.1 
-
-
-  Program exited normally.
+            APB: 80000D00 - 80000E00
+            IRQ: 1
+  adev20    Aeroflex Gaisler  Unknown device    
+            APB: 80001000 - 80002000
   
 grmon2> 
+

@@ -34,7 +34,7 @@ package config is
   constant CFG_NWIN : integer := (8);
   constant CFG_V8 : integer := 16#32# + 4*0;
   constant CFG_MAC : integer := 0;
-  constant CFG_BP : integer := 0;
+  constant CFG_BP : integer := 1;
   constant CFG_SVT : integer := 0;
   constant CFG_RSTADDR : integer := 16#00000#;
   constant CFG_LDDEL : integer := (1);
@@ -58,13 +58,13 @@ package config is
   constant CFG_DLINE : integer := 4;
   constant CFG_DREPL : integer := 0;
   constant CFG_DLOCK : integer := 0;
-  constant CFG_DSNOOP : integer := 1 + 0 + 4*0;
+  constant CFG_DSNOOP : integer := 1*2 + 4*0;
   constant CFG_DFIXED : integer := 16#0#;
   constant CFG_DLRAMEN : integer := 0;
   constant CFG_DLRAMADDR: integer := 16#8F#;
   constant CFG_DLRAMSZ : integer := 1;
-  constant CFG_MMUEN : integer := 0;
-  constant CFG_ITLBNUM : integer := 2;
+  constant CFG_MMUEN : integer := 1;
+  constant CFG_ITLBNUM : integer := 8;
   constant CFG_DTLBNUM : integer := 2;
   constant CFG_TLB_TYPE : integer := 1 + 0*2;
   constant CFG_TLB_REP : integer := 1;
@@ -114,7 +114,7 @@ package config is
   constant CFG_DDRSP_INIT : integer := 1;
   constant CFG_DDRSP_FREQ : integer := (100);
   constant CFG_DDRSP_COL : integer := (9);
-  constant CFG_DDRSP_SIZE : integer := (8);
+  constant CFG_DDRSP_SIZE : integer := (32);
   constant CFG_DDRSP_RSKEW : integer := (2500);
 -- AHB ROM
   constant CFG_AHBROMEN : integer := 0;
@@ -126,13 +126,13 @@ package config is
   constant CFG_AHBRAMEN : integer := 0;
   constant CFG_AHBRSZ : integer := 1;
   constant CFG_AHBRADDR : integer := 16#A00#;
+  constant CFG_AHBRPIPE : integer := 0;
 -- UART 1
   constant CFG_UART1_ENABLE : integer := 1;
   constant CFG_UART1_FIFO : integer := 8;
 -- LEON3 interrupt controller
   constant CFG_IRQ3_ENABLE : integer := 1;
   constant CFG_IRQ3_NSEC : integer := 0;
-
 -- Modular timer
   constant CFG_GPT_ENABLE : integer := 1;
   constant CFG_GPT_NTIM : integer := (2);

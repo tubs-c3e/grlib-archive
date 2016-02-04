@@ -4,6 +4,10 @@
 #define CONFIG_SYN_TECH umc
 #elif defined CONFIG_SYN_RHUMC
 #define CONFIG_SYN_TECH rhumc
+#elif defined CONFIG_SYN_DARE
+#define CONFIG_SYN_TECH dare
+#elif defined CONFIG_SYN_SAED32
+#define CONFIG_SYN_TECH saed32
 #elif defined CONFIG_SYN_ATC18
 #define CONFIG_SYN_TECH atc18s
 #elif defined CONFIG_SYN_ATC18RHA
@@ -22,7 +26,13 @@
 #define CONFIG_SYN_TECH stratix2
 #elif defined CONFIG_SYN_STRATIXIII
 #define CONFIG_SYN_TECH stratix3
+#elif defined CONFIG_SYN_STRATIXIV
+#define CONFIG_SYN_TECH stratix4
+#elif defined CONFIG_SYN_CYCLONEII
+#define CONFIG_SYN_TECH stratix2
 #elif defined CONFIG_SYN_CYCLONEIII
+#define CONFIG_SYN_TECH cyclone3
+#elif defined CONFIG_SYN_CYCLONEIV
 #define CONFIG_SYN_TECH cyclone3
 #elif defined CONFIG_SYN_EASIC45
 #define CONFIG_SYN_TECH easic45
@@ -97,7 +107,7 @@
 #elif defined CONFIG_SYN_TSMC90
 #define CONFIG_SYN_TECH tsmc90
 #elif defined CONFIG_SYN_TM65GPLUS
-#define CONFIG_SYN_TECH tm65gpl
+#define CONFIG_SYN_TECH tm65gplus
 #elif defined CONFIG_SYN_CUSTOM1
 #define CONFIG_SYN_TECH custom1
 #else
@@ -110,6 +120,10 @@
 #define CFG_RAM_TECH umc
 #elif defined CONFIG_MEM_RHUMC
 #define CFG_RAM_TECH rhumc
+#elif defined CONFIG_MEM_DARE
+#define CFG_RAM_TECH dare
+#elif defined CONFIG_MEM_SAED32
+#define CFG_RAM_TECH saed32
 #elif defined CONFIG_MEM_VIRAGE
 #define CFG_RAM_TECH memvirage
 #elif defined CONFIG_MEM_ARTISAN
@@ -163,6 +177,12 @@
 #define CFG_CLK_TECH rhlib18t
 #elif defined CONFIG_CLK_RHUMC
 #define CFG_CLK_TECH rhumc
+#elif defined CONFIG_CLK_SAED32
+#define CFG_CLK_TECH saed32
+#elif defined CONFIG_CLK_DARE
+#define CFG_CLK_TECH dare
+#elif defined CONFIG_CLK_EASIC45
+#define CFG_CLK_TECH easic45
 #elif defined CONFIG_CLK_UT130HBD
 #define CFG_CLK_TECH ut130
 #else
@@ -453,10 +473,6 @@
 
 #ifndef CONFIG_DCACHE_SNOOP
 #define CONFIG_DCACHE_SNOOP 0
-#endif
-
-#ifndef CONFIG_DCACHE_SNOOP_FAST
-#define CONFIG_DCACHE_SNOOP_FAST 0
 #endif
 
 #ifndef CONFIG_DCACHE_SNOOP_SEPTAG
@@ -835,10 +851,25 @@
 #define CFG_AHBRAMSZ 32
 #elif CONFIG_AHBRAM_SZ64
 #define CFG_AHBRAMSZ 64
+#elif CONFIG_AHBRAM_SZ128
+#define CFG_AHBRAMSZ 128
+#elif CONFIG_AHBRAM_SZ256
+#define CFG_AHBRAMSZ 256
+#elif CONFIG_AHBRAM_SZ512
+#define CFG_AHBRAMSZ 512
+#elif CONFIG_AHBRAM_SZ1024
+#define CFG_AHBRAMSZ 1024
+#elif CONFIG_AHBRAM_SZ2048
+#define CFG_AHBRAMSZ 2048
+#elif CONFIG_AHBRAM_SZ4096
+#define CFG_AHBRAMSZ 4096
 #else
 #define CFG_AHBRAMSZ 1
 #endif
 
+#ifndef CONFIG_AHBRAM_PIPE
+#define CONFIG_AHBRAM_PIPE 0
+#endif
 #ifndef CONFIG_GRETH_ENABLE
 #define CONFIG_GRETH_ENABLE 0
 #endif
@@ -861,6 +892,13 @@
 #define CFG_GRETH_FIFO 8
 #endif
 
+#ifndef CONFIG_GRETH_FT
+#define CONFIG_GRETH_FT 0
+#endif
+
+#ifndef CONFIG_GRETH_EDCLFT
+#define CONFIG_GRETH_EDCLFT 0
+#endif
 #ifndef CONFIG_CAN_ENABLE
 #define CONFIG_CAN_ENABLE 0
 #endif
@@ -971,6 +1009,8 @@
 #define CONFIG_SPW_INPUT 2
 #elif defined CONFIG_SPW_RX_DDR
 #define CONFIG_SPW_INPUT 3
+#elif defined CONFIG_SPW_RX_PAD
+#define CONFIG_SPW_INPUT 4
 #elif defined CONFIG_SPW_RX_XOR
 #define CONFIG_SPW_INPUT 0
 #elif defined CONFIG_SPW_RX_AFLEX

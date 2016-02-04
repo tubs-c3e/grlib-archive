@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008 - 2013, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2014, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -47,6 +47,29 @@ begin
     if (msg4 /= "") then print(msg4); end if;
     wait;
   end process;
+end;
+
+
+library ieee;
+use ieee.std_logic_1164.all;
+library grlib;
+use grlib.stdlib.all;
+
+entity report_design is
+  generic (msg1, fabtech, memtech : string := ""; mdel : integer := 4);
+end;
+
+architecture beh of report_design is
+begin
+
+  x : report_version
+    generic map (
+      msg1 => msg1,
+      msg2 => "GRLIB Version " & tost(LIBVHDL_VERSION/1000) & "." & tost((LIBVHDL_VERSION mod 1000)/100)
+      & "." & tost(LIBVHDL_VERSION mod 100) & ", build " & tost(LIBVHDL_BUILD),
+      msg3 => "Target technology: " & fabtech & ", memory library: " & memtech,
+      mdel => mdel);
+
 end;
 
 -- pragma translate_on

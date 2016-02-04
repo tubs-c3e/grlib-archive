@@ -147,21 +147,72 @@ extern line3();
 #define DTAGMASK (~((1<<DLINESZ)-1))
 #define DIAGADDRMASK ((1<<DTAGLOW)-1)
 
-//static maintest();
-
-cachetest()
+void cachetest(void)
 {
-    int tmp;
+    report_subtest(CACHE_TEST);
 
-    tmp = maintest();
+    maintest();
     wsysreg(0, 0x0081000f);
-    return(tmp);
 }
+
+void cachetest4(void)
+{
+    int i = 0;
+
+    report_subtest(CACHE_TEST);
+
+    if (((rsysreg(8) >> 28) & 3) != 3) { /* ic dynamic replacement */
+       i = 3;
+    }
+
+    if (((rsysreg(12) >> 28) & 3) != 3) { /* dc dynamic replacement */
+       i = 3;
+    }
+
+    /* if dynamic replacement then test repl = 3, 2, 1, 0 */
+    while (i >= 0) {
+       wsysreg(8, (rsysreg(8) & ~(3 << 28)) | (i << 28));
+       wsysreg(12, (rsysreg(12) & ~(3 << 28)) | (i << 28));
+       maintest();
+       i--;
+    }
+
+    wsysreg(8, (rsysreg(8) & ~(3 << 28)) | (1 << 28));
+    wsysreg(12, (rsysreg(12) & ~(3 << 28)) | (1 << 28));
+    wsysreg(0, 0x0081000f);
+}
+
 
 long long int getdw();
 
-    
- maintest()
+void cache_test_init_state()
+{
+	int ITAGS, DTAGS;
+	int ILINESZ, DLINESZ;
+	int ITAG_BITS, ILINEBITS, DTAG_BITS, DLINEBITS;
+
+	ILINEBITS = (icconf >> 16) & 7;
+	DLINEBITS = ((dcconf >> 16) & 7);
+	ITAG_BITS = ((icconf >> 20) & 15) + 8 - ILINEBITS;
+	DTAG_BITS = ((dcconf >> 20) & 15) + 8 - DLINEBITS;
+	isetsize = (1<<((icconf >> 20) & 15)) * 1024;
+	dsetsize = (1<<((dcconf >> 20) & 15)) * 1024;
+	isetbits = ((icconf >> 20) & 15) + 10;
+	dsetbits = ((dcconf >> 20) & 15) + 10;
+	ITAGS = (1 << ITAG_BITS);
+	ILINESZ = (1 << ILINEBITS);
+	DTAGS = (1 << DTAG_BITS);
+ 	DLINESZ = (1 << DLINEBITS); 
+	ITAGAMSK = 0x7fffffff - (1 << (ITAG_BITS + ILINEBITS +2)) + 1;
+	DTAGAMSK = 0x7fffffff - (1 << (DTAG_BITS + DLINEBITS +2)) + 1;
+	DSETS = ((dcconf >> 24) & 3) + 1;
+
+	ITAGLOW = 10 + ((icconf >> 20) & 15);
+	DTAGLOW = 10 + ((dcconf >> 20) & 15);
+}
+
+
+maintest()
 {
 
 	volatile double mrl[8192 + 8]; /* enough for 64 K caches */
@@ -179,8 +230,6 @@ long long int getdw();
 	int IVALMSK, tag, data;
 	int ISETS;
  	int (*line[4])() = {line0, line1, line2, line3}; 
-
-	report_subtest(CACHE_TEST);
 
 	cachectrl = rsysreg(0); wsysreg(0, cachectrl & ~0x0f); 
 	do cachectrl = rsysreg(0); while(cachectrl & (CCTRL_IFP | CCTRL_DFP));

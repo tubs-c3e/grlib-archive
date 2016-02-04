@@ -1,5 +1,7 @@
 
 
+
+
 -----------------------------------------------------------------------------
 -- LEON3 Demonstration design test bench configuration
 -- Copyright (C) 2009 Aeroflex Gaisler
@@ -56,7 +58,7 @@ package config is
   constant CFG_DLINE : integer := 4;
   constant CFG_DREPL : integer := 1;
   constant CFG_DLOCK : integer := 0;
-  constant CFG_DSNOOP : integer := 1 + 0 + 4*0;
+  constant CFG_DSNOOP : integer := 1*2 + 4*0;
   constant CFG_DFIXED : integer := 16#0#;
   constant CFG_DLRAMEN : integer := 0;
   constant CFG_DLRAMADDR: integer := 16#8F#;
@@ -119,7 +121,7 @@ package config is
   constant CFG_DDRSP_INIT : integer := 1;
   constant CFG_DDRSP_FREQ : integer := (100);
   constant CFG_DDRSP_COL : integer := (9);
-  constant CFG_DDRSP_SIZE : integer := (8);
+  constant CFG_DDRSP_SIZE : integer := (32);
   constant CFG_DDRSP_RSKEW : integer := (2500);
 -- SPI memory controller
   constant CFG_SPIMCTRL : integer := 0;
@@ -130,6 +132,7 @@ package config is
   constant CFG_SPIMCTRL_SCALER : integer := 1;
   constant CFG_SPIMCTRL_ASCALER : integer := 1;
   constant CFG_SPIMCTRL_PWRUPCNT : integer := 0;
+  constant CFG_SPIMCTRL_OFFSET : integer := 16#0#;
 -- AHB ROM
   constant CFG_AHBROMEN : integer := 0;
   constant CFG_AHBROPIP : integer := 0;
@@ -140,11 +143,14 @@ package config is
   constant CFG_AHBRAMEN : integer := 0;
   constant CFG_AHBRSZ : integer := 1;
   constant CFG_AHBRADDR : integer := 16#A00#;
-
+  constant CFG_AHBRPIPE : integer := 0;
 -- Gaisler Ethernet core
   constant CFG_GRETH : integer := 1;
   constant CFG_GRETH1G : integer := 0;
   constant CFG_ETH_FIFO : integer := 64;
+
+
+
 
 -- UART 1
   constant CFG_UART1_ENABLE : integer := 1;
