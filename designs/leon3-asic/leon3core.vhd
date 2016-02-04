@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -105,10 +105,27 @@ entity leon3core is
     spw_txs     : out std_logic_vector(0 to CFG_SPW_NUM-1);
     spw_ten     : out std_logic_vector(0 to CFG_SPW_NUM-1);
 
+    trst        : in std_ulogic;
+    tck         : in std_ulogic;
+    tms         : in std_ulogic;
+    tdi         : in std_ulogic;
+    tdo         : out std_ulogic;
+    tdoen       : out std_ulogic;
+
     scanen     	: in  std_ulogic;
     testen     	: in  std_ulogic;
     testrst    	: in  std_ulogic;
-    testoen  	: in  std_ulogic
+    testoen  	: in  std_ulogic;
+
+    chain_tck   : out std_ulogic;
+    chain_tdi   : out std_ulogic;
+    chain_tdo   : in std_ulogic;    
+    bsshft      : out std_ulogic;
+    bscapt      : out std_ulogic;
+    bsupdi      : out std_ulogic;
+    bsupdo      : out std_ulogic;
+    bsdrive     : out std_ulogic;
+    bshighz     : out std_ulogic    
 	);
 end;
 
@@ -155,7 +172,9 @@ signal gpto : gptimer_out_type;
 signal gpioi, gpioi2 : gpio_in_type;
 signal gpioo, gpioo2 : gpio_out_type;
 
-signal tck, tms, tdi, tdo : std_ulogic;
+-- signal tck, tms, tdi, tdo : std_ulogic;
+signal jtck, jtdi, jrst, jtdo, jcapt, jshft, jupd: std_ulogic;
+signal jinst: std_logic_vector(7 downto 0);
 
 signal spwi : grspw_in_type_vector(0 to CFG_SPW_NUM-1);
 signal spwo : grspw_out_type_vector(0 to CFG_SPW_NUM-1);
@@ -184,7 +203,7 @@ begin
   rstgen0 : rstgen			-- reset generator
   generic map (syncrst => CFG_NOASYNC, scanen => scantest)
   port map (resetn, clk, clklock, rstn, rstraw, testrst);
-
+  
 ----------------------------------------------------------------------
 ---  AHB CONTROLLER --------------------------------------------------
 ----------------------------------------------------------------------
@@ -233,10 +252,10 @@ begin
   nouah : if CFG_AHB_UART = 0 generate apbo(7) <= apb_none; end generate;
 
   ahbjtaggen0 :if CFG_AHB_JTAG = 1 generate
-    ahbjtag0 : ahbjtag generic map(tech => fabtech, part => JTAG_UT699RH,
-	hindex => CFG_NCPU+CFG_AHB_UART, scantest => scantest)
+    ahbjtag0 : ahbjtag generic map(tech => fabtech, part => JTAG_EXAMPLE_PART,
+	hindex => CFG_NCPU+CFG_AHB_UART, scantest => scantest, oepol => OEPOL)
       port map(rstn, clk, tck, tms, tdi, tdo, ahbmi, ahbmo(CFG_NCPU+CFG_AHB_UART),
-               open, open, open, open, open, open, open, gnd(0));
+               jtck, jtdi, jinst, jrst, jcapt, jshft, jupd, jtdo, trst, tdoen);
   end generate;
   
 ----------------------------------------------------------------------
@@ -345,6 +364,30 @@ begin
   end generate;
   nop2 : if CFG_AHBSTAT = 0 generate apbo(15) <= apb_none; end generate;
 
+-------------------------------------------------------------------------------
+-- JTAG Boundary scan 
+-------------------------------------------------------------------------------
+
+  bscangen: if CFG_BOUNDSCAN_EN /= 0 generate
+    
+    xtapgen: if CFG_AHB_JTAG = 0 generate
+      t0: tap
+        generic map (tech => fabtech, irlen => 6, scantest => scantest, oepol => OEPOL)
+        port map (trst,tck,tms,tdi,tdo,
+                  jtck,jtdi,jinst,jrst,jcapt,jshft,jupd,open,open,'1',jtdo,'0',testen,testrst,testoen,tdoen);
+    end generate;
+    
+    bc0: bscanctrl
+      port map (
+        trst,jtck,jtdi,jinst,jrst,jcapt,jshft,jupd,jtdo,
+        chain_tdi, chain_tdo, bsshft, bscapt, bsupdi, bsupdo, bsdrive, bshighz,
+        gnd(0), testen, testrst);
+      
+    chain_tck <= jtck;
+
+  end generate;
+  
+  
 -----------------------------------------------------------------------
 ---  SPACEWIRE  -------------------------------------------------------
 -----------------------------------------------------------------------

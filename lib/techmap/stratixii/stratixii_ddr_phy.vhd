@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -142,6 +142,7 @@ ARCHITECTURE RTL OF altdqs_stxii IS
 	 END COMPONENT;
 
 	 SIGNAL  dqs_busout :	STD_LOGIC_VECTOR (width-1 downto 0);
+	 SIGNAL  dqsbusout :	STD_LOGIC_VECTOR (width-1 downto 0);
 	 SIGNAL  delay_ctrl :	STD_LOGIC_VECTOR (5 DOWNTO 0);
 
 	 TYPE periodtype IS ARRAY(10 TO 20) of STRING(1 TO 6);
@@ -163,7 +164,33 @@ ARCHITECTURE RTL OF altdqs_stxii IS
 	   IF MHz > 175 THEN RETURN 16; ELSE RETURN 12; END IF;
 	 END chain_length;
 	 
+component global
+    port (
+        a_in : in std_logic;
+        a_out : out std_logic);
+end component;
+
+component stratixii_clkctrl
+    generic (
+             clock_type : STRING := "Auto";
+             lpm_type : STRING := "stratixii_clkctrl"
+             );
+    
+    port (
+          inclk       : in std_logic_vector(3 downto 0) := "0000";
+          clkselect   : in std_logic_vector(1 downto 0) := "00";
+          ena         : in std_logic := '1';
+          devclrn     : in std_logic := '1';
+          devpor      : in std_logic := '1';
+          outclk      : out std_logic
+         );
+end component;
+subtype v4 is std_logic_vector(3 downto 0);
+type vv4 is array (width-1 downto 0) of v4;
+signal dqslocal : vv4;
+signal gnd : std_logic;
 BEGIN
+        gnd <= '0';
 	dqinclk <= not dqs_busout;
 
 	stxii_dll1 :  stratixii_dll
@@ -225,6 +252,11 @@ BEGIN
 		outclk => outclk(i),
 		padio => dqs_padio(i)
 	  );
+--          clkbuf : global 
+--	  port map (a_in => dqsbusout(i), a_out => dqs_busout(i));
+--	  dqslocal(i) <= "000" & dqsbusout(i);
+--          clkbuf : stratixii_clkctrl generic map (clock_type => "global clock")
+--	  port map (inclk => dqslocal(i), outclk => dqs_busout(i));
 	END GENERATE loop0;
 
 END RTL; --altdqs_stxii
@@ -323,7 +355,7 @@ BEGIN
 		DDIO_MODE => "bidir",
 		DDIOINCLK_INPUT => "negated_inclk",
 		EXTEND_OE_DISABLE => "false",
-		INCLK_INPUT => "dqs_bus",
+--		INCLK_INPUT => "dqs_bus",
 		INPUT_ASYNC_RESET => "none",
 		INPUT_POWER_UP => "low",
 		INPUT_REGISTER_MODE => "register",
@@ -358,8 +390,13 @@ use grlib.stdlib.all;
 library techmap;
 use techmap.gencomp.all;
 
+library altera;
 library altera_mf;
-use altera_mf.altera_mf_components.all;
+--pragma translate_off
+use altera_mf.altpll;
+use altera_mf.altddio_out;
+use altera_mf.altddio_bidir;
+--pragma translate_on
 
 ------------------------------------------------------------------
 -- STRATIX2 DDR PHY -----------------------------------------------
@@ -445,6 +482,73 @@ signal dqsnv  		: std_logic_vector (dbits/8-1 downto 0);    -- ddr dqs
 
 constant DDR_FREQ : integer := (MHz * clk_mul) / clk_div;
 
+component stratixii_clkctrl
+    generic (
+             clock_type : STRING := "Auto";
+             lpm_type : STRING := "stratixii_clkctrl"
+             );
+    port (
+          inclk       : in std_logic_vector(3 downto 0) := "0000";
+          clkselect   : in std_logic_vector(1 downto 0) := "00";
+          ena         : in std_logic := '1';
+          devclrn     : in std_logic := '1';
+          devpor      : in std_logic := '1';
+          outclk      : out std_logic
+         );
+
+end component;	
+
+component altddio_out
+    generic (
+        width                  : positive;  -- required parameter
+        power_up_high          : string := "OFF";
+        oe_reg                 : string := "UNUSED";
+        extend_oe_disable      : string := "UNUSED";
+        invert_output          : string := "OFF";
+        intended_device_family : string := "MERCURY";
+        lpm_hint               : string := "UNUSED";
+        lpm_type               : string := "altddio_out" );
+    port (
+        datain_h   : in std_logic_vector(width-1 downto 0);
+        datain_l   : in std_logic_vector(width-1 downto 0);
+        outclock   : in std_logic;
+        outclocken : in std_logic := '1';
+        aset       : in std_logic := '0';
+        aclr       : in std_logic := '0';
+        sset       : in std_logic := '0';
+        sclr       : in std_logic := '0';
+        oe         : in std_logic := '1';
+        dataout    : out std_logic_vector(width-1 downto 0));
+end component;
+
+component altddio_bidir
+    generic(
+        width                    : positive; -- required parameter
+        power_up_high            : string := "OFF";
+        oe_reg                   : string := "UNUSED";
+        extend_oe_disable        : string := "UNUSED";
+        implement_input_in_lcell : string := "UNUSED";
+        invert_output            : string := "OFF";
+        intended_device_family   : string := "MERCURY";
+        lpm_hint                 : string := "UNUSED";
+        lpm_type                 : string := "altddio_bidir" );
+    port (
+        datain_h   : in std_logic_vector(width-1 downto 0);
+        datain_l   : in std_logic_vector(width-1 downto 0);
+        inclock    : in std_logic := '0';
+        inclocken  : in std_logic := '1';
+        outclock   : in std_logic;
+        outclocken : in std_logic := '1';
+        aset       : in std_logic := '0';
+        aclr       : in std_logic := '0';
+        sset       : in std_logic := '0';
+        sclr       : in std_logic := '0';
+        oe         : in std_logic := '1';
+        dataout_h  : out std_logic_vector(width-1 downto 0);
+        dataout_l  : out std_logic_vector(width-1 downto 0);
+        padio      : inout std_logic_vector(width-1 downto 0) );
+end component;
+
 component altdqs_stxii
 	generic (width : integer := 2; MHz : integer := 100);
 	PORT
@@ -459,12 +563,42 @@ component altdqs_stxii
 	);
 END component;
 
+
 type phasevec is array (1 to 3) of string(1 to 4);
 type phasevecarr is array (10 to 13) of phasevec;
 
 constant phasearr : phasevecarr := (
         ("2500", "5000", "7500"), ("2273", "4545", "6818"),   -- 100 & 110 MHz
         ("2083", "4167", "6250"), ("1923", "3846", "5769"));  -- 120 & 130 MHz
+
+  component altpll
+  generic (   
+    intended_device_family : string := "Stratix" ;
+    operation_mode         : string := "NORMAL" ;
+    inclk0_input_frequency : positive;
+    inclk1_input_frequency : positive;
+    width_clock            : positive := 6;
+    clk0_multiply_by       : positive := 1;
+    clk0_divide_by         : positive := 1;
+    clk1_multiply_by       : positive := 1;
+    clk1_divide_by         : positive := 1;    
+    clk2_multiply_by       : positive := 1;
+    clk2_divide_by         : positive := 1;
+    clk3_multiply_by       : positive := 1;
+    clk3_divide_by         : positive := 1;    
+    clk4_multiply_by       : positive := 1;
+    clk4_divide_by         : positive := 1;
+    clk3_phase_shift       : string := "0";
+    clk2_phase_shift       : string := "0";
+    clk1_phase_shift       : string := "0";
+    clk0_phase_shift       : string := "0"
+  );
+  port (
+    inclk       : in std_logic_vector(1 downto 0);
+    clk         : out std_logic_vector(width_clock-1 downto 0);
+    locked      : out std_logic
+  );
+  end component;
 
 begin
 
@@ -479,6 +613,7 @@ begin
 
   dll : altpll
   generic map (   
+    intended_device_family => "Stratix II",
     operation_mode => "NORMAL",
     inclk0_input_frequency   => 1000000/MHz,
     inclk1_input_frequency   => 1000000/MHz,
@@ -537,24 +672,24 @@ begin
   ddrclocks : for i in 0 to 2 generate
     clkpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => vcc, datain_l(0) => gnd, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => vcc, datain_l(0) => gnd, oe => vcc, 
 	outclock => clk90r, dataout(0) => ddr_clk(i));
 
     clknpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => gnd, datain_l(0) => vcc, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => gnd, datain_l(0) => vcc, oe => vcc, 
 	outclock => clk90r, dataout(0) => ddr_clkb(i));
 
   end generate;
 
   csnpads : altddio_out generic map (width => 2,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h => csn, datain_l => csn, oe => vcc, oe_out => open,
+    port map ( datain_h => csn, datain_l => csn, oe => vcc, 
 	outclock => clk0r, dataout => ddr_csb);
 
   ckepads : altddio_out generic map (width => 2,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h => ckel, datain_l => ckel, oe => vcc, oe_out => open,
+    port map ( datain_h => ckel, datain_l => ckel, oe => vcc, 
 	outclock => clk0r, dataout => ddr_cke);
 
   ddrbanks : for i in 0 to 1 generate
@@ -563,38 +698,38 @@ begin
 
   rasnpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => rasn, datain_l(0) => rasn, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => rasn, datain_l(0) => rasn, oe => vcc, 
 	outclock => clk0r, dataout(0) => ddr_rasb);
 
   casnpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => casn, datain_l(0) => casn, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => casn, datain_l(0) => casn, oe => vcc, 
 	outclock => clk0r, dataout(0) => ddr_casb);
 
   wenpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => wen, datain_l(0) => wen, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => wen, datain_l(0) => wen, oe => vcc, 
 	outclock => clk0r, dataout(0) => ddr_web);
 
   dmpads : altddio_out generic map (width => dbits/8,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
     port map (
 	datain_h => dm(dbits/8*2-1 downto dbits/8),
-	datain_l => dm(dbits/8-1 downto 0), oe => vcc, oe_out => open,
+	datain_l => dm(dbits/8-1 downto 0), oe => vcc, 
 	outclock => clk0r, dataout => ddr_dm
     );
 
   bapads : altddio_out generic map (width => 2,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
     port map (
-	datain_h => ba, datain_l => ba, oe => vcc, oe_out => open,
+	datain_h => ba, datain_l => ba, oe => vcc, 
 	outclock => clk0r, dataout => ddr_ba
     );
 
   addrpads : altddio_out generic map (width => 14,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
     port map (
-	datain_h => addr, datain_l => addr, oe => vcc, oe_out => open,
+	datain_h => addr, datain_l => addr, oe => vcc, 
 	outclock => clk0r, dataout => ddr_ad
     );
 
@@ -645,7 +780,9 @@ library techmap;
 use techmap.gencomp.all;
 
 library altera_mf;
+--library stratixii;
 use altera_mf.altera_mf_components.all;
+--use stratixii.stratixii_pll;
 
 ------------------------------------------------------------------
 -- STRATIX2 DDR2 PHY -----------------------------------------------
@@ -758,12 +895,66 @@ constant phasearr : phasevecarr := (
         ("1316", "1754", "2632", "3947"),   -- 190 MHz
         ("1250", "1667", "2500", "3750"));  -- 200 MHz
 
+  component altpll
+  generic (   
+    intended_device_family : string := "Stratix" ;
+    operation_mode         : string := "NORMAL" ;
+    inclk0_input_frequency : positive;
+    inclk1_input_frequency : positive;
+    width_clock            : positive := 6;
+    clk0_multiply_by       : positive := 1;
+    clk0_divide_by         : positive := 1;
+    clk1_multiply_by       : positive := 1;
+    clk1_divide_by         : positive := 1;    
+    clk2_multiply_by       : positive := 1;
+    clk2_divide_by         : positive := 1;
+    clk3_multiply_by       : positive := 1;
+    clk3_divide_by         : positive := 1;    
+    clk4_multiply_by       : positive := 1;
+    clk4_divide_by         : positive := 1;
+    clk4_phase_shift       : string := "0";
+    clk3_phase_shift       : string := "0";
+    clk2_phase_shift       : string := "0";
+    clk1_phase_shift       : string := "0";
+    clk0_phase_shift       : string := "0"
+  );
+  port (
+    inclk       : in std_logic_vector(1 downto 0);
+    clk         : out std_logic_vector(width_clock-1 downto 0);
+    locked      : out std_logic
+  );
+  end component;
+
+component altddio_out
+    generic (
+        width                  : positive;  -- required parameter
+        power_up_high          : string := "OFF";
+        oe_reg                 : string := "UNUSED";
+        extend_oe_disable      : string := "UNUSED";
+        invert_output          : string := "OFF";
+        intended_device_family : string := "MERCURY";
+        lpm_hint               : string := "UNUSED";
+        lpm_type               : string := "altddio_out" );
+    port (
+        datain_h   : in std_logic_vector(width-1 downto 0);
+        datain_l   : in std_logic_vector(width-1 downto 0);
+        outclock   : in std_logic;
+        outclocken : in std_logic := '1';
+        aset       : in std_logic := '0';
+        aclr       : in std_logic := '0';
+        sset       : in std_logic := '0';
+        sclr       : in std_logic := '0';
+        oe         : in std_logic := '1';
+        dataout    : out std_logic_vector(width-1 downto 0));
+end component;
+
 begin
   clkout <= clk_0r;
   vcc <= '1'; gnd <= '0'; gndv <= (others => '0');
 
   dll : altpll
   generic map (   
+    intended_device_family => "Stratix II",
     operation_mode => "NORMAL",
     inclk0_input_frequency   => 1000000/MHz,
     inclk1_input_frequency   => 1000000/MHz,
@@ -837,12 +1028,12 @@ begin
   ddrclocks : for i in 0 to 2 generate
     clkpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => vcc, datain_l(0) => gnd, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => vcc, datain_l(0) => gnd, oe => vcc, 
 	outclock => clk_0r, dataout(0) => ddr_clk(i));
 
     clknpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => gnd, datain_l(0) => vcc, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => gnd, datain_l(0) => vcc, oe => vcc, 
 	outclock => clk_0r, dataout(0) => ddr_clkb(i));
 
   end generate;
@@ -850,32 +1041,32 @@ begin
   -- Control signal pads
   ckepads : altddio_out generic map (width => 2,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h => ckel, datain_l => ckel, oe => vcc, oe_out => open,
+    port map ( datain_h => ckel, datain_l => ckel, oe => vcc, 
 	outclock => clk_180r, dataout => ddr_cke);
 
   csnpads : altddio_out generic map (width => 2,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h => csn, datain_l => csn, oe => vcc, oe_out => open,
+    port map ( datain_h => csn, datain_l => csn, oe => vcc, 
 	outclock => clk_180r, dataout => ddr_csb);
 
   odtpads : altddio_out generic map (width => 2,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h => odtl, datain_l => odtl, oe => vcc, oe_out => open,
+    port map ( datain_h => odtl, datain_l => odtl, oe => vcc, 
 	outclock => clk_180r, dataout => ddr_odt);
 
   rasnpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => rasn, datain_l(0) => rasn, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => rasn, datain_l(0) => rasn, oe => vcc, 
 	outclock => clk_180r, dataout(0) => ddr_rasb);
 
   casnpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => casn, datain_l(0) => casn, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => casn, datain_l(0) => casn, oe => vcc, 
 	outclock => clk_180r, dataout(0) => ddr_casb);
 
   wenpad : altddio_out generic map (width => 1,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
-    port map ( datain_h(0) => wen, datain_l(0) => wen, oe => vcc, oe_out => open,
+    port map ( datain_h(0) => wen, datain_l(0) => wen, oe => vcc, 
 	outclock => clk_180r, dataout(0) => ddr_web);
 
   bapads : altddio_out generic map (width => 2+eightbanks,
@@ -883,14 +1074,14 @@ begin
     port map (
 	datain_h => ba(1+eightbanks downto 0),
         datain_l => ba(1+eightbanks downto 0),
-        oe => vcc, oe_out => open,
+        oe => vcc, 
 	outclock => clk_180r, dataout => ddr_ba
     );
 
   addrpads : altddio_out generic map (width => 14,
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
     port map (
-	datain_h => addr, datain_l => addr, oe => vcc, oe_out => open,
+	datain_h => addr, datain_l => addr, oe => vcc, 
 	outclock => clk_180r, dataout => ddr_ad
     );
 
@@ -920,7 +1111,7 @@ begin
 	INTENDED_DEVICE_FAMILY => "STRATIXII")
     port map (
 	datain_h => dm(dbits/4-1 downto dbits/8),
-	datain_l => dm(dbits/8-1 downto 0), oe => vcc, oe_out => open,
+	datain_l => dm(dbits/8-1 downto 0), oe => vcc, 
 	outclock => clk_270r, dataout => ddr_dm
     );
 

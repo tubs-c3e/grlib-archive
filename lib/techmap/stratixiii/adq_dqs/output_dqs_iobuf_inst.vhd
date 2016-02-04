@@ -56,8 +56,8 @@
 
  ARCHITECTURE RTL OF output_dqs_iobuf_inst_iobuf_out_sdp IS
 
-	 ATTRIBUTE synthesis_clearbox : boolean;
-	 ATTRIBUTE synthesis_clearbox OF RTL : ARCHITECTURE IS true;
+--	 ATTRIBUTE synthesis_clearbox : boolean;
+--	 ATTRIBUTE synthesis_clearbox OF RTL : ARCHITECTURE IS true;
 	 SIGNAL  wire_obuf_ba_o	:	STD_LOGIC;
 	 SIGNAL  wire_obufa_o	:	STD_LOGIC;
 	 SIGNAL  wire_pseudo_diffa_o	:	STD_LOGIC;
@@ -144,8 +144,8 @@ END output_dqs_iobuf_inst;
 
 ARCHITECTURE RTL OF output_dqs_iobuf_inst IS
 
-	ATTRIBUTE synthesis_clearbox: boolean;
-	ATTRIBUTE synthesis_clearbox OF RTL: ARCHITECTURE IS TRUE;
+--	ATTRIBUTE synthesis_clearbox: boolean;
+--	ATTRIBUTE synthesis_clearbox OF RTL: ARCHITECTURE IS TRUE;
 	SIGNAL sub_wire0	: STD_LOGIC_VECTOR (0 DOWNTO 0);
 	SIGNAL sub_wire1	: STD_LOGIC_VECTOR (0 DOWNTO 0);
 

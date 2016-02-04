@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -186,7 +186,7 @@ signal resetnl, clk2x, spw_clkl   : std_logic;
 
 signal spwi : grspw_in_type_vector(0 to 2);
 signal spwo : grspw_out_type_vector(0 to 2);
-signal spw_rx_clk : std_logic_vector(1 downto 0);
+signal spw_rx_clk : std_ulogic;
 
 constant IOAEN : integer := 0;
 
@@ -531,7 +531,7 @@ begin
   --This template does NOT currently support grspw2 so only use grspw1 
   spw_clkl <= clk2x;
   spw : if CFG_SPW_EN > 0 generate
-   spw_rx_clk <= (others => '0');
+   spw_rx_clk <= '0';
    swloop : for i in 0 to CFG_SPW_NUM-1 generate
    sw0 : grspwm generic map(tech => memtech,
      hindex => maxahbmsp+i, pindex => 12+i, paddr => 12+i, pirq => 10+i, 
@@ -539,7 +539,8 @@ begin
      fifosize1 => CFG_SPW_AHBFIFO, fifosize2 => CFG_SPW_RXFIFO,
      rxclkbuftype => 1,  rmapbufs => CFG_SPW_RMAPBUF, ft => CFG_SPW_FT,
      netlist => CFG_SPW_NETLIST, ports => 1, dmachan => 1, spwcore => CFG_SPW_GRSPW)
-     port map(rstn, clkm, spw_rx_clk, spw_clkl, ahbmi, ahbmo(maxahbmsp+i), 
+     port map(rstn, clkm, spw_rx_clk, spw_rx_clk, spw_clkl, spw_clkl,
+        ahbmi, ahbmo(maxahbmsp+i), 
 	apbi, apbo(12+i), spwi(i), spwo(i));
      spwi(i).tickin <= '0'; spwi(i).rmapen <= '1';
      spwi(i).clkdiv10 <= conv_std_logic_vector(2*sysfreq/10000-1, 8);

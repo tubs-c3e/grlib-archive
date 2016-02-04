@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -30,12 +30,15 @@ use grlib.stdlib.all;
 use techmap.gencomp.all;
 library gaisler;
 use gaisler.memctrl.all;
+use gaisler.ddrpkg.all;
 use gaisler.leon3.all;
 use gaisler.uart.all;
 use gaisler.misc.all;
 use gaisler.pci.all;
 use gaisler.jtag.all;
-use gaisler.ddrrec.all;
+-- pragma translate_off
+use gaisler.sim.all;
+-- pragma translate_on
 
 library esa;
 use esa.memoryctrl.all;
@@ -67,9 +70,6 @@ entity leon3mp is
     oen    	: out std_logic;
     writen 	: out std_logic;
     read   	: out std_logic;
--- pragma translate_off
-    iosn   	: out std_logic;
--- pragma translate_on 
     romsn  	: out std_logic;
 
     ddr_clk  	: out std_logic_vector(1 downto 0);
@@ -275,7 +275,7 @@ begin
 
   mctrl0 : mctrl generic map (hindex => 0, pindex => 0,
 	paddr => 0, srbanks => 1, ram8 => CFG_MCTRL_RAM8BIT, 
-	ramaddr => 16#C00#, rammask => 16#FFF#,
+	ramaddr => 16#C00#, rammask => 16#FFF#, iomask => 0,
 	ram16 => CFG_MCTRL_RAM16BIT, sden => CFG_MCTRL_SDEN, 
 	invclk => CFG_MCTRL_INVCLK, sepbus => CFG_MCTRL_SEPBUS)
   port map (rstn, clkm, memi, memo, ahbsi, ahbso(0), apbi, apbo(0), wpo, sdo);
@@ -454,6 +454,15 @@ begin
       pci_par, pci_req, pci_serr, pci_host, pci_66, pcii, pcio );
 
   end generate;
+
+-----------------------------------------------------------------------
+---  Test report module  ----------------------------------------------
+-----------------------------------------------------------------------
+
+-- pragma translate_off
+
+  test0 : ahbrep generic map (hindex => 7, haddr => 16#200#)
+   port map (rstn, clkm, ahbsi, ahbso(7));
 
 -----------------------------------------------------------------------
 ---  Boot message  ----------------------------------------------------

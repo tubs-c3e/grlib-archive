@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -32,15 +32,23 @@ use techmap.gencomp.all;
 use techmap.allclkgen.all;
 library gaisler;
 use gaisler.memctrl.all;
+use gaisler.ddrpkg.all;
 use gaisler.leon3.all;
 use gaisler.uart.all;
 use gaisler.misc.all;
+use gaisler.i2c.all;
 use gaisler.net.all;
 use gaisler.jtag.all;
 
 library esa;
 use esa.memoryctrl.all;
 use work.config.all;
+use work.ml50x.all;
+
+-- pragma translate_off
+library unisim;
+use unisim.ODDR;
+-- pragma translate_on
 
 entity leon3mp is
   generic (
@@ -74,21 +82,21 @@ entity leon3mp is
 --pragma translate_off
     iosn    : out std_ulogic;
 --pragma translate_on
-    ddr_clk  	    : out std_logic_vector(1 downto 0);
-    ddr_clkb  	    : out std_logic_vector(1 downto 0);
-    ddr_cke  	    : out std_logic_vector(1 downto 0);
-    ddr_csb  	    : out std_logic_vector(1 downto 0);
-    ddr_odt  	    : out std_logic_vector(1 downto 0);
-    ddr_web  	    : out std_ulogic;                       -- ddr write enable
-    ddr_rasb  	    : out std_ulogic;                       -- ddr ras
+    ddr2_ck  	    : out std_logic_vector(1 downto 0);
+    ddr2_ck_n 	    : out std_logic_vector(1 downto 0);
+    ddr2_cke 	    : out std_logic_vector(1 downto 0);
+    ddr2_cs_n	    : out std_logic_vector(1 downto 0);
+    ddr2_odt 	    : out std_logic_vector(1 downto 0);
+    ddr2_we_n	    : out std_ulogic;                       -- ddr write enable
+    ddr2_ras_n	    : out std_ulogic;                       -- ddr ras
 
-    ddr_casb  	    : out std_ulogic;                       -- ddr cas
-    ddr_dm   	    : out std_logic_vector (7 downto 0);    -- ddr dm
-    ddr_dqsp  	    : inout std_logic_vector (7 downto 0);  -- ddr dqs
-    ddr_dqsn  	    : inout std_logic_vector (7 downto 0);  -- ddr dqs
-    ddr_ad          : out std_logic_vector (13 downto 0);   -- ddr address
-    ddr_ba          : out std_logic_vector (1 downto 0);    -- ddr bank address
-    ddr_dq  	    : inout std_logic_vector (63 downto 0); -- ddr data
+    ddr2_cas_n	    : out std_ulogic;                       -- ddr cas
+    ddr2_dm  	    : out std_logic_vector (7 downto 0);    -- ddr dm
+    ddr2_dqs  	    : inout std_logic_vector (7 downto 0);  -- ddr dqs
+    ddr2_dqs_n	    : inout std_logic_vector (7 downto 0);  -- ddr dqs
+    ddr2_a          : out std_logic_vector (13 downto 0);   -- ddr address
+    ddr2_ba         : out std_logic_vector (1+CFG_DDR2SP downto 0);    -- ddr bank address
+    ddr2_dq 	    : inout std_logic_vector (63 downto 0); -- ddr data
 
     txd1   	    : out std_ulogic; 			-- UART1 tx data
     rxd1   	    : in  std_ulogic;  			-- UART1 rx data
@@ -113,6 +121,7 @@ entity leon3mp is
     phy_tx_er 	    : out std_ulogic; 
     phy_mii_clk	    : out std_ulogic;
     phy_rst_n	    : out std_ulogic;
+    phy_int 	    : in std_ulogic;
 
     ps2_keyb_clk    : inout std_logic;
     ps2_keyb_data   : inout std_logic;
@@ -146,6 +155,23 @@ entity leon3mp is
 end;
 
 architecture rtl of leon3mp is
+
+  component ODDR
+    generic
+      ( DDR_CLK_EDGE : string := "OPPOSITE_EDGE";
+--        INIT : bit := '0';
+        SRTYPE : string := "SYNC");
+    port
+      (
+        Q : out std_ulogic;
+        C : in std_ulogic;
+        CE : in std_ulogic;
+        D1 : in std_ulogic;
+        D2 : in std_ulogic;
+        R : in std_ulogic;
+        S : in std_ulogic
+      );
+  end component;
 
 component svga2ch7301c
   generic (
@@ -249,19 +275,17 @@ signal i2co, dvi_i2co : i2c_out_type;
 constant BOARD_FREQ_200 : integer := 200000;   -- input frequency in KHz
 constant BOARD_FREQ : integer := 100000;   -- input frequency in KHz
 constant CPU_FREQ : integer := BOARD_FREQ * CFG_CLKMUL / CFG_CLKDIV;  -- cpu frequency in KHz
-constant IOAEN : integer := CFG_DDR2SP;
+constant I2C_FILTER : integer := (CPU_FREQ*5+50000)/100000+1;
+constant IOAEN : integer := CFG_DDR2SP + CFG_GRACECTRL;
 
 signal stati : ahbstat_in_type;
+signal ssrclkfb : std_ulogic;
 
-signal ddsi  : ddrmem_in_type;
-signal ddso  : ddrmem_out_type;
-
-signal ddrclkfb, ssrclkfb, ddr_clkl, ddr_clk90l, ddr_clknl, ddr_clk270l : std_ulogic;
-signal ddr_clkv 	: std_logic_vector(2 downto 0);
-signal ddr_clkbv	: std_logic_vector(2 downto 0);
-signal ddr_ckev  	: std_logic_vector(1 downto 0);
-signal ddr_csbv  	: std_logic_vector(1 downto 0);
-signal ddr_adl      	: std_logic_vector (13 downto 0);
+-- Used for connecting input/output signals to the DDR3 controller
+signal migi		: mig_app_in_type;
+signal migo		: mig_app_out_type;
+signal phy_init_done    : std_ulogic;
+signal clk0_tb, rst0_tb, rst0_tbn : std_ulogic;
 
 signal sysmoni : grsysmon_in_type;
 signal sysmono : grsysmon_out_type;
@@ -286,6 +310,9 @@ attribute syn_keep of clk40 : signal is true;
 attribute syn_preserve of clk40 : signal is true;
 attribute syn_keep of clk65 : signal is true;
 attribute syn_preserve of clk65 : signal is true;
+attribute syn_keep of clk_200 : signal is true;
+attribute syn_preserve of clk_200 : signal is true;
+attribute syn_preserve of phy_init_done : signal is true;
 attribute keep : boolean;
 attribute keep of lock : signal is true;
 attribute keep of clkml : signal is true;
@@ -295,6 +322,8 @@ attribute keep of clkvga : signal is true;
 attribute keep of clk25 : signal is true;
 attribute keep of clk40 : signal is true;
 attribute keep of clk65 : signal is true;
+attribute keep of clk_200 : signal is true;
+attribute keep of phy_init_done : signal is true;
 
 attribute syn_noprune : boolean;
 attribute syn_noprune of sysace_clk_in_pad : label is true;
@@ -303,6 +332,8 @@ begin
  
   usb_csn <= '1';
   usb_rstn <= rstn;
+  rst0_tbn <= not rst0_tb; 
+
 ----------------------------------------------------------------------
 ---  Reset and Clock generation  -------------------------------------
 ----------------------------------------------------------------------
@@ -327,12 +358,18 @@ begin
     generic map (CFG_FABTECH, CFG_CLKMUL, CFG_CLKDIV, 1, 0, 0, 0, 0, BOARD_FREQ, 0)
     port map (lclk, gnd(0), clkm, open, open, srclkl, open, cgi, cgo);
 
-  clkgen1 : clkgen  		-- Ethernet 1G PHY clock generator
-    generic map (CFG_FABTECH, 5, 4, 0, 0, 0, 0, 0, BOARD_FREQ, 0)
-    port map (lclk, gnd(0), egtx_clk, open, open, open, open, cgi2, cgo2);
-  cgi2.pllctrl <= "00"; cgi2.pllrst <= rstraw; --cgi2.pllref <= egtx_clk_fb;
-  egtx_clk_pad : outpad generic map (tech => padtech)
-      port map (phy_gtx_clk, egtx_clk);
+  gclk : if CFG_GRETH1G /= 0 generate
+    clkgen1 : clkgen  		-- Ethernet 1G PHY clock generator
+      generic map (CFG_FABTECH, 5, 4, 0, 0, 0, 0, 0, BOARD_FREQ, 0)
+      port map (lclk, gnd(0), egtx_clk, open, open, open, open, cgi2, cgo2);
+    cgi2.pllctrl <= "00"; cgi2.pllrst <= rstraw; --cgi2.pllref <= egtx_clk_fb;
+    x0 : ODDR port map ( Q => phy_gtx_clk, C => egtx_clk, CE => vcc(0),
+--		D1 => gnd(0), D2 => vcc(0), R => gnd(0), S => gnd(0));
+		D1 => vcc(0), D2 => gnd(0), R => gnd(0), S => gnd(0));
+  end generate;
+  nogclk : if CFG_GRETH1G = 0 generate
+    cgo2.clklock <= '1'; phy_gtx_clk <= '0';
+  end generate;
 
   resetn_pad : inpad generic map (tech => padtech) port map (sys_rst_in, rst); 
   rst0 : rstgen			-- reset generator
@@ -366,6 +403,7 @@ begin
     		irqi(i), irqo(i), dbgi(i), dbgo(i));
     end generate;
     bus_error(0) <= not dbgo(0).error;
+    bus_error(1) <= rstn;
   
     dsugen : if CFG_DSU = 1 generate
       dsu0 : dsu3			-- LEON3 Debug Support Unit
@@ -410,7 +448,7 @@ begin
 
   mctrl0 : if CFG_MCTRL_LEON2 = 1 generate
     mctrl0 : mctrl generic map (hindex => 3, pindex => 0, 
-	ramaddr => 16#400# + CFG_DDR2SP*16#800#, rammask => 16#FE0#,
+	ramaddr => 16#400# + (CFG_DDR2SP+CFG_MIG_DDR2)*16#800#, rammask => 16#FE0#,
 	paddr => 0, srbanks => 1, ram8 => CFG_MCTRL_RAM8BIT, 
 	ram16 => CFG_MCTRL_RAM16BIT, sden => CFG_MCTRL_SDEN, 
 	invclk => CFG_MCTRL_INVCLK, sepbus => CFG_MCTRL_SEPBUS)
@@ -450,7 +488,50 @@ begin
       port map (sram_flash_data(31 downto 16), memo.data(15 downto 0), 
 		memo.vbdrive(15 downto 0), memi.data(15 downto 0));
  
-  ddrsp0 : if (CFG_DDR2SP /= 0) generate 
+  migsp0 : if (CFG_MIG_DDR2 = 1) generate
+
+    ahb2mig0 : entity work.ahb2mig_ml50x
+    generic map ( hindex => 0, haddr => 16#400#, hmask => MIGHMASK,
+	MHz => 400, Mbyte => 512, nosync => 0) --boolean'pos(CFG_MIG_CLK4=12)) --CFG_CLKDIV/12)
+    port map (
+	rst_ahb => rstn, rst_ddr => rst0_tbn, clk_ahb => clkm, clk_ddr => clk0_tb,
+	ahbsi => ahbsi, ahbso => ahbso(0), migi => migi, migo => migo);
+
+    migv5 : mig_36_1 
+     generic map (
+	CKE_WIDTH => CKE_WIDTH, CS_NUM => CS_NUM, CS_WIDTH => CS_WIDTH, CS_BITS => CS_BITS,
+	COL_WIDTH => COL_WIDTH, ROW_WIDTH => ROW_WIDTH,
+	NOCLK200 => true, SIM_ONLY => 1)
+     port map(
+      ddr2_dq => ddr2_dq(DQ_WIDTH-1 downto 0),
+      ddr2_a => ddr2_a(ROW_WIDTH-1 downto 0),
+      ddr2_ba => ddr2_ba(1 downto 0), ddr2_ras_n => ddr2_ras_n, 
+      ddr2_cas_n => ddr2_cas_n, ddr2_we_n => ddr2_we_n,
+      ddr2_cs_n => ddr2_cs_n(CS_NUM-1 downto 0), ddr2_odt => ddr2_odt(0 downto 0),
+      ddr2_cke => ddr2_cke(CKE_WIDTH-1 downto 0),
+      ddr2_dm => ddr2_dm(DM_WIDTH-1 downto 0), 
+      sys_clk => clk_200, idly_clk_200 => clk_200, sys_rst_n => rstraw,
+      phy_init_done => phy_init_done, 
+      rst0_tb => rst0_tb, clk0_tb => clk0_tb,  
+      app_wdf_afull => migo.app_wdf_afull,
+      app_af_afull => migo.app_af_afull,
+      rd_data_valid => migo.app_rd_data_valid, 
+      app_wdf_wren => migi.app_wdf_wren,
+      app_af_wren => migi.app_en, app_af_addr =>  migi.app_addr,
+      app_af_cmd => migi.app_cmd,
+      rd_data_fifo_out => migo.app_rd_data, app_wdf_data => migi.app_wdf_data,
+      app_wdf_mask_data => migi.app_wdf_mask, 
+      ddr2_dqs => ddr2_dqs(DQS_WIDTH-1 downto 0),
+      ddr2_dqs_n => ddr2_dqs_n(DQS_WIDTH-1 downto 0), 
+      ddr2_ck => ddr2_ck((CLK_WIDTH-1) downto 0),
+      ddr2_ck_n => ddr2_ck_n((CLK_WIDTH-1) downto 0)
+    );
+
+    lock <= phy_init_done;
+    led(5) <= phy_init_done;
+  end generate;
+      
+  ddrsp0 : if (CFG_DDR2SP /= 0) and (CFG_MIG_DDR2 = 0) generate 
     ddrc0 : ddr2spa generic map ( fabtech => fabtech, memtech => memtech, 
       hindex => 0, haddr => 16#400#, hmask => 16#E00#, ioaddr => 1, 
       pwron => CFG_DDR2SP_INIT, MHz => BOARD_FREQ_200/1000, TRFC => CFG_DDR2SP_TRFC,
@@ -460,16 +541,16 @@ begin
       ddelayb2 => CFG_DDR2SP_DELAY2, ddelayb3 => CFG_DDR2SP_DELAY3, 
       ddelayb4 => CFG_DDR2SP_DELAY4, ddelayb5 => CFG_DDR2SP_DELAY5,
       ddelayb6 => CFG_DDR2SP_DELAY6, ddelayb7 => CFG_DDR2SP_DELAY7,
-      numidelctrl => 4, norefclk => 0, odten => 3)
+      numidelctrl => 1, norefclk => 0, odten => 3, nclk => 2,
+      eightbanks => 1)
     port map ( rst, rstn, clk_200, clkm, clk_200, lock, 
         clkml, clkml, ahbsi, ahbso(0),
-        ddr_clkv, ddr_clkbv, ddr_clk_fb, ddr_clk_fb, ddr_ckev, ddr_csbv, ddr_web, ddr_rasb, ddr_casb, 
-        ddr_dm, ddr_dqsp, ddr_dqsn, ddr_ad, ddr_ba, ddr_dq, ddr_odt);
-    ddr_clk <= ddr_clkv(1 downto 0); ddr_clkb <= ddr_clkbv(1 downto 0);
-    ddr_cke <= ddr_ckev(1 downto 0); ddr_csb <= ddr_csbv(1 downto 0);
+        ddr2_ck, ddr2_ck_n, ddr_clk_fb, ddr_clk_fb, ddr2_cke, ddr2_cs_n,
+        ddr2_we_n, ddr2_ras_n, ddr2_cas_n, 
+        ddr2_dm, ddr2_dqs, ddr2_dqs_n, ddr2_a, ddr2_ba, ddr2_dq, ddr2_odt);
   end generate;
 
-  noddr :  if (CFG_DDR2SP = 0) generate lock <= '1'; end generate;
+  noddr :  if (CFG_DDR2SP = 0) and (CFG_MIG_DDR2 = 0) generate lock <= '1'; end generate;
 
 ----------------------------------------------------------------------
 ---  System ACE I/F Controller ---------------------------------------
@@ -526,7 +607,7 @@ begin
 
   led(0) <= gpioo.val(0); led(1) <= not rxd1;
   led(2) <= not duo.txd when gpioo.val(0) = '1' else not u1o.txd;
-
+  led (12 downto 6) <= (others => '0');
   irqctrl : if CFG_IRQ3_ENABLE /= 0 generate
     irqctrl0 : irqmp			-- interrupt controller
     generic map (pindex => 2, paddr => 2, ncpu => NCPU)
@@ -546,7 +627,7 @@ begin
 	nbits => CFG_GPT_TW)
     port map (rstn, clkm, apbi, apbo(3), gpti, gpto);
     gpti.dhalt <= dsuo.tstop; gpti.extclk <= '0';
-    led(6) <= gpto.wdog;
+    led(3) <= gpto.wdog;
   end generate;
 
   nogpt : if CFG_GPT_ENABLE = 0 generate apbo(3) <= apb_none; end generate;
@@ -588,7 +669,8 @@ begin
                 vgalock, lcd_datal, lcd_hsyncl, lcd_vsyncl, lcd_del);
     
     i2cdvi : i2cmst
-      generic map (pindex => 9, paddr => 9, pmask => 16#FFF#, pirq => 14)
+      generic map (pindex => 9, paddr => 9, pmask => 16#FFF#,
+                   pirq => 14, filter => I2C_FILTER)
       port map (rstn, clkm, apbi, apbo(9), dvi_i2ci, dvi_i2co);
   end generate;
 
@@ -636,7 +718,8 @@ begin
 
   i2cm: if CFG_I2C_ENABLE = 1 generate  -- I2C master
     i2c0 : i2cmst
-    generic map (pindex => 12, paddr => 12, pmask => 16#FFF#, pirq => 11)
+    generic map (pindex => 12, paddr => 12, pmask => 16#FFF#,
+                 pirq => 11, filter => I2C_FILTER)
     port map (rstn, clkm, apbi, apbo(12), i2ci, i2co);
     i2c_scl_pad : iopad generic map (tech => padtech)
       port map (iic_scl, i2co.scl, i2co.scloen, i2ci.scl);
@@ -654,7 +737,8 @@ begin
         mdcscaler => CPU_FREQ/1000, enable_mdio => 1, fifosize => CFG_ETH_FIFO,
         nsync => 1, edcl => CFG_DSU_ETH, edclbufsz => CFG_ETH_BUF,
         macaddrh => CFG_ETH_ENM, macaddrl => CFG_ETH_ENL, phyrstadr => 7,
-	ipaddrh => CFG_ETH_IPM, ipaddrl => CFG_ETH_IPL, giga => CFG_GRETH1G)
+	ipaddrh => CFG_ETH_IPM, ipaddrl => CFG_ETH_IPL, giga => CFG_GRETH1G,
+	enable_mdint => 1)
       port map( rst => rstn, clk => clkm, ahbmi => ahbmi,
         ahbmo => ahbmo(NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE), 
 	apbi => apbi, apbo => apbo(11), ethi => ethi, etho => etho); 
@@ -686,6 +770,8 @@ begin
 	port map (phy_mii_clk, etho.mdc);
       erst_pad : outpad generic map (tech => padtech) 
 	port map (phy_rst_n, rstn);
+      emdintn_pad : inpad generic map (tech => padtech) 
+        port map (phy_int, ethi.mdint);
 
       ethi.gtx_clk <= egtx_clk;
 

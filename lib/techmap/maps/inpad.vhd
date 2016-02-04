@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -30,27 +30,38 @@ use techmap.gencomp.all;
 use techmap.allpads.all;
 
 entity inpad is
-  generic (tech : integer := 0; level : integer := 0; 
+  generic (tech : integer := 0; level : integer := 0;
 	voltage : integer := x33v; filter : integer := 0;
 	strength : integer := 0);
   port (pad : in std_ulogic; o : out std_ulogic);
-end; 
+end;
 
 architecture rtl of inpad is
 begin
   gen0 : if has_pads(tech) = 0 generate
-    o <= to_X01(pad) after 1 ns;
+    o <= transport to_X01(pad)
+-- pragma translate_off
+ 	after 1 ns
+-- pragma translate_on
+	;
   end generate;
-  xcv : if (tech = virtex) or (tech = virtex2) or (tech = spartan3) or 
-	(tech = virtex4) or (tech = spartan3e) or (tech = virtex5)
-  generate
-    x0 : virtex_inpad generic map (level, voltage) port map (pad, o);
+  xcv : if (is_unisim(tech) = 1) generate
+    x0 : unisim_inpad generic map (level, voltage) port map (pad, o);
   end generate;
-  axc : if (tech = axcel) generate
+  axc : if (tech = axcel) or (tech = axdsp) generate
     x0 : axcel_inpad generic map (level, voltage) port map (pad, o);
   end generate;
-  pa : if (tech = proasic) or (tech = apa3) generate
+  pa3 : if (tech = proasic) or (tech = apa3) generate
     x0 : apa3_inpad generic map (level, voltage, filter) port map (pad, o);
+  end generate;
+  pa3e : if (tech = apa3e) generate
+    x0 : apa3e_inpad generic map (level, voltage, filter) port map (pad, o);
+  end generate;
+  pa3l : if (tech = apa3l) generate
+    x0 : apa3l_inpad generic map (level, voltage, filter) port map (pad, o);
+  end generate;
+  fus : if (tech = actfus) generate
+    x0 : fusion_inpad generic map (level, voltage, filter) port map (pad, o);
   end generate;
   atc : if (tech = atc18s) generate
     x0 : atc18_inpad generic map (level, voltage) port map (pad, o);
@@ -66,21 +77,30 @@ begin
   end generate;
   ihp : if (tech = ihp25) generate
     x0 : ihp25_inpad generic map(level, voltage) port map(pad, o);
-  end generate; 
+  end generate;
   ihprh : if (tech = ihp25rh) generate
     x0 : ihp25rh_inpad generic map(level, voltage) port map(pad, o);
-  end generate; 
+  end generate;
   rh18t : if (tech = rhlib18t) generate
     x0 : rh_lib18t_inpad generic map (voltage, filter) port map(pad, o);
-  end generate; 
+  end generate;
   ut025 : if (tech = ut25) generate
     x0 : ut025crh_inpad generic map (level, voltage, filter) port map(pad, o);
-  end generate; 
+  end generate;
+  ut13  : if (tech = ut130) generate
+    x0 : ut130hbd_inpad generic map (level, voltage, filter) port map(pad, o);
+  end generate;
   pereg : if (tech = peregrine) generate
     x0 : peregrine_inpad generic map (level, voltage, filter, strength) port map(pad, o);
-  end generate; 
+  end generate;
   eas : if (tech = easic90) generate
     x0 : nextreme_inpad generic map (level, voltage) port map (pad, o);
+  end generate;
+  n2x : if (tech = easic45) generate
+    x0 : n2x_inpad generic map (level, voltage) port map (pad, o);
+  end generate;
+  ut90nhbd : if (tech = ut90) generate
+    x0 : ut90nhbd_inpad generic map (level, voltage, filter) port map(pad, o);
   end generate;
 end;
 
@@ -90,12 +110,12 @@ use ieee.std_logic_1164.all;
 use techmap.gencomp.all;
 
 entity inpadv is
-  generic (tech : integer := 0; level : integer := 0; 
+  generic (tech : integer := 0; level : integer := 0;
 	   voltage : integer := 0; width : integer := 1);
   port (
-    pad : in  std_logic_vector(width-1 downto 0); 
+    pad : in  std_logic_vector(width-1 downto 0);
     o   : out std_logic_vector(width-1 downto 0));
-end; 
+end;
 architecture rtl of inpadv is
 begin
   v : for i in width-1 downto 0 generate

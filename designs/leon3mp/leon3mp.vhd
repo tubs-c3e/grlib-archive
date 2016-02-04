@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -203,7 +203,7 @@ signal pci_arb_req_n, pci_arb_gnt_n   : std_logic_vector(0 to 3);
 
 signal spwi : grspw_in_type_vector(0 to 2);
 signal spwo : grspw_out_type_vector(0 to 2);
-signal spw_rx_clk : std_logic_vector(1 downto 0);
+signal spw_rx_clk : std_ulogic;
 
 attribute sync_set_reset : string;
 attribute sync_set_reset of rstn : signal is "true";
@@ -638,15 +638,16 @@ begin
 -----------------------------------------------------------------------
   --This template does NOT currently support grspw2 so only use grspw1 
   spw : if CFG_SPW_EN > 0 generate
-   spw_rx_clk <= (others => '0');
+   spw_rx_clk <= '0';
    spw_clk_pad : clkpad generic map (tech => padtech) port map (spw_clk, spw_lclk); 
    swloop : for i in 0 to CFG_SPW_NUM-1 generate
-   sw0 : grspwm generic map(tech => memtech,
+   sw0 : grspwm generic map(tech => memtech,  netlist => CFG_SPW_NETLIST,
      hindex => maxahbmsp+i, pindex => 12+i, paddr => 12+i, pirq => 10+i, 
      sysfreq => sysfreq, nsync => 1, rmap => 0, ports => 1, dmachan => 1,
      fifosize1 => CFG_SPW_AHBFIFO, fifosize2 => CFG_SPW_RXFIFO,
      rxclkbuftype => 1, spwcore => CFG_SPW_GRSPW)
-     port map(resetn, clkm, spw_rx_clk, spw_lclk, ahbmi, ahbmo(maxahbmsp+i), 
+     port map(resetn, clkm, spw_rx_clk, spw_rx_clk, spw_lclk, spw_lclk,
+        ahbmi, ahbmo(maxahbmsp+i), 
         apbi, apbo(12+i), spwi(i), spwo(i));
      spwi(i).tickin <= '0'; spwi(i).rmapen <= '1';
      spwi(i).clkdiv10 <= conv_std_logic_vector(sysfreq/10000-1, 8);

@@ -1,21 +1,13 @@
 
 ----------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
---  Copyright (C) 2004 GAISLER RESEARCH
---
---  This program is free software; you can redistribute it and/or modify
---  it under the terms of the GNU General Public License as published by
---  the Free Software Foundation; either version 2 of the License, or
---  (at your option) any later version.
---
---  See the file COPYING for the full details of the license.
---
------------------------------------------------------------------------------
+--  Copyright (C) 2009 Aeroflex Gaisler
+----------------------------------------------------------------------------
 -- Entity: 	ahbrom
 -- File:	ahbrom.vhd
 -- Author:	Jiri Gaisler - Gaisler Research
 -- Description:	AHB rom. 0/1-waitstate read
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
 library grlib;
@@ -56,7 +48,6 @@ begin
   ahbso.hresp   <= "00"; 
   ahbso.hsplit  <= (others => '0'); 
   ahbso.hirq    <= (others => '0');
-  ahbso.hcache  <= '1';
   ahbso.hconfig <= hconfig;
   ahbso.hindex  <= hindex;
 
@@ -68,7 +59,7 @@ begin
   end process;
 
   p0 : if pipe = 0 generate
-    ahbso.hrdata  <= romdata;
+    ahbso.hrdata  <= ahbdrivedata(romdata);
     ahbso.hready  <= '1';
   end generate;
 
@@ -80,7 +71,7 @@ begin
 	hready <= ahbsi.hready;
 	ahbso.hready <=  (not rst) or (hsel and hready) or
 	  (ahbsi.hsel(hindex) and not ahbsi.htrans(1) and ahbsi.hready);
-	ahbso.hrdata  <= romdata;
+        ahbso.hrdata  <= ahbdrivedata(romdata);
       end if;
     end process;
   end generate;

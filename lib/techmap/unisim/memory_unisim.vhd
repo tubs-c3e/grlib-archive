@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
 -- Description:	Memory generators for Xilinx rams
 ------------------------------------------------------------------------------
 
+-- parametrisable sync ram generator using UNISIM RAMB4 block rams
+
 library ieee;
 use ieee.std_logic_1164.all;
 --pragma translate_off
@@ -34,6 +36,9 @@ use unisim.RAMB4_S8;
 use unisim.RAMB4_S16;
 use unisim.RAMB4_S16_S16;
 --pragma translate_on
+library grlib;
+use grlib.config_types.all;
+use grlib.config.all;
 library techmap;
 use techmap.gencomp.all;
 
@@ -122,18 +127,20 @@ begin
   xa(abits-1 downto 0) <= address; xa(19 downto abits) <= (others => '0');
   ya(abits-1 downto 0) <= address; ya(19 downto abits) <= (others => '1');
 
-  a0 : if (abits <= 5) generate
+  a0 : if (abits <= 5) and (GRLIB_CONFIG_ARRAY(grlib_techmap_strict_ram) = 0) generate
     r0 : generic_syncram generic map (abits, dbits)
          port map (clk, address, datain, do(dbits-1 downto 0), write);
     do(dbits+32 downto dbits) <= (others => '0');
   end generate;
-  a7 : if (abits > 5) and (abits <= 7) and (dbits <= 32) generate
+  a7 : if ((abits > 5 or GRLIB_CONFIG_ARRAY(grlib_techmap_strict_ram) /= 0) and
+           (abits <= 7) and (dbits <= 32)) generate
     r0 : RAMB4_S16_S16 port map ( do(31 downto 16), do(15 downto 0),
 	xa(7 downto 0), ya(7 downto 0), clk, clk, di(31 downto 16),
 	di(15 downto 0), enable, enable, gnd, gnd, write, write);
     do(dbits+32 downto 32) <= (others => '0');
   end generate;
-  a8 : if ((abits > 5) and (abits <= 7) and (dbits > 32)) or (abits = 8) generate
+  a8 : if (((abits > 5 or GRLIB_CONFIG_ARRAY(grlib_techmap_strict_ram) /= 0) and
+            (abits <= 7) and (dbits > 32)) or (abits = 8)) generate
     x : for i in 0 to ((dbits-1)/16) generate
       r : RAMB4_S16 port map ( do (((i+1)*16)-1 downto i*16), xa(7 downto 0),
 	clk, di (((i+1)*16)-1 downto i*16), enable, gnd, write );
@@ -174,18 +181,6 @@ begin
       port map (clk, address, datain, do(dbits-1 downto 0), write);
     do(dbits+32 downto dbits) <= (others => '0');
   end generate;
-
--- pragma translate_off
---  a_to_high : if abits > 12 generate
---    x : process
---    begin
---      assert false
---      report  "Address depth larger than 12 not supported for virtex_syncram"
---      severity failure;
---      wait;
---    end process;
---  end generate;
--- pragma translate_on
 
 end;
 
@@ -386,11 +381,13 @@ begin
 
 end;
 
-
--- parametrisable sync ram generator using virtex2 select rams
+-- parametrisable sync ram generator using UNISIM RAMB16 block rams
 
 library ieee;
 use ieee.std_logic_1164.all;
+library grlib;
+use grlib.config_types.all;
+use grlib.config.all;
 --pragma translate_off
 library unisim;
 use unisim.RAMB16_S36_S36;
@@ -402,7 +399,7 @@ use unisim.RAMB16_S2;
 use unisim.RAMB16_S1;
 --pragma translate_on
 
-entity virtex2_syncram is
+entity unisim_syncram is
   generic ( abits : integer := 9; dbits : integer := 32);
   port (
     clk     : in std_ulogic;
@@ -414,7 +411,7 @@ entity virtex2_syncram is
   );
 end;
 
-architecture behav of virtex2_syncram is
+architecture behav of unisim_syncram is
   component RAMB16_S36_S36
   port (
     DOA : out std_logic_vector (31 downto 0);
@@ -534,13 +531,14 @@ begin
   xa(19 downto abits) <= (others => '0'); ya(abits-1 downto 0) <= address;
   ya(19 downto abits) <= (others => '1');
 
-  a0 : if (abits <= 5) generate
+  a0 : if (abits <= 5) and (GRLIB_CONFIG_ARRAY(grlib_techmap_strict_ram) = 0) generate
     r0 : generic_syncram generic map (abits, dbits)
          port map (clk, address, datain, do(dbits-1 downto 0), write);
     do(dbits+72 downto dbits) <= (others => '0');
   end generate;
 
-  a8 : if (abits > 5) and (abits <= 8) generate
+  a8 : if ((abits > 5 or GRLIB_CONFIG_ARRAY(grlib_techmap_strict_ram) /= 0) and
+           (abits <= 8)) generate
     x : for i in 0 to ((dbits-1)/72) generate
       r0 : RAMB16_S36_S36 port map (
 	do(i*72+36+31 downto i*72+36), do(i*72+31 downto i*72),
@@ -612,7 +610,7 @@ begin
 --    x : process
 --    begin
 --      assert false
---      report  "Address depth larger than 14 not supported for virtex2_syncram"
+--      report  "Address depth larger than 14 not supported for unisim_syncram"
 --      severity failure;
 --      wait;
 --    end process;
@@ -633,7 +631,7 @@ use unisim.RAMB16_S2_S2;
 use unisim.RAMB16_S1_S1;
 --pragma translate_on
 
-entity virtex2_syncram_dp is
+entity unisim_syncram_dp is
   generic (
     abits : integer := 4; dbits : integer := 32
   );
@@ -652,7 +650,7 @@ entity virtex2_syncram_dp is
     write2   : in std_ulogic);
 end;
 
-architecture behav of virtex2_syncram_dp is
+architecture behav of unisim_syncram_dp is
 
   component RAMB16_S4_S4
  port (
@@ -797,8 +795,8 @@ begin
 	addr1(8 downto 0), addr2(8 downto 0), clk1, clk2,
 	di1(((i+1)*36)-5 downto i*36), di2(((i+1)*36)-5 downto i*36),
 	di1(((i+1)*36)-1 downto i*36+32), di2(((i+1)*36)-1 downto i*36+32),
---	enable1, enable2, gnd, gnd, write1, write2);
-	vcc, vcc, gnd, gnd, write1, write2);
+	enable1, enable2, gnd, gnd, write1, write2);
+--	vcc, vcc, gnd, gnd, write1, write2);
     end generate;
     do1(dbits+36 downto 36*(((dbits-1)/36)+1)) <= (others => '0');
     do2(dbits+36 downto 36*(((dbits-1)/36)+1)) <= (others => '0');
@@ -812,8 +810,8 @@ begin
 	addr1(9 downto 0), addr2(9 downto 0), clk1, clk2,
 	di1(((i+1)*18)-3 downto i*18), di2(((i+1)*18)-3 downto i*18),
 	di1(((i+1)*18)-1 downto i*18+16), di2(((i+1)*18)-1 downto i*18+16),
-	vcc, vcc, gnd, gnd, write1, write2);
---	enable1, enable2, gnd, gnd, write1, write2);
+--	vcc, vcc, gnd, gnd, write1, write2);
+	enable1, enable2, gnd, gnd, write1, write2);
     end generate;
     do1(dbits+36 downto 18*(((dbits-1)/18)+1)) <= (others => '0');
     do2(dbits+36 downto 18*(((dbits-1)/18)+1)) <= (others => '0');
@@ -827,8 +825,8 @@ begin
 	addr1(10 downto 0), addr2(10 downto 0), clk1, clk2,
 	di1(((i+1)*9)-2 downto i*9), di2(((i+1)*9)-2 downto i*9),
 	di1(((i+1)*9)-1 downto i*9+8), di2(((i+1)*9)-1 downto i*9+8),
-	vcc, vcc, gnd, gnd, write1, write2);
---	enable1, enable2, gnd, gnd, write1, write2);
+--	vcc, vcc, gnd, gnd, write1, write2);
+	enable1, enable2, gnd, gnd, write1, write2);
     end generate;
     do1(dbits+36 downto 9*(((dbits-1)/9)+1)) <= (others => '0');
     do2(dbits+36 downto 9*(((dbits-1)/9)+1)) <= (others => '0');
@@ -840,8 +838,8 @@ begin
 	do1(((i+1)*4)-1 downto i*4), do2(((i+1)*4)-1 downto i*4),
 	addr1(11 downto 0), addr2(11 downto 0), clk1, clk2,
 	di1(((i+1)*4)-1 downto i*4), di2(((i+1)*4)-1 downto i*4),
-	vcc, vcc, gnd, gnd, write1, write2);
---	enable1, enable2, gnd, gnd, write1, write2);
+--	vcc, vcc, gnd, gnd, write1, write2);
+	enable1, enable2, gnd, gnd, write1, write2);
     end generate;
     do1(dbits+36 downto 4*(((dbits-1)/4)+1)) <= (others => '0');
     do2(dbits+36 downto 4*(((dbits-1)/4)+1)) <= (others => '0');
@@ -853,8 +851,8 @@ begin
 	do1(((i+1)*2)-1 downto i*2), do2(((i+1)*2)-1 downto i*2),
 	addr1(12 downto 0), addr2(12 downto 0), clk1, clk2,
 	di1(((i+1)*2)-1 downto i*2), di2(((i+1)*2)-1 downto i*2),
-	vcc, vcc, gnd, gnd, write1, write2);
---	enable1, enable2, gnd, gnd, write1, write2);
+--	vcc, vcc, gnd, gnd, write1, write2);
+	enable1, enable2, gnd, gnd, write1, write2);
     end generate;
     do1(dbits+36 downto 2*(((dbits-1)/2)+1)) <= (others => '0');
     do2(dbits+36 downto 2*(((dbits-1)/2)+1)) <= (others => '0');
@@ -866,8 +864,8 @@ begin
 	do1(((i+1)*1)-1 downto i*1), do2(((i+1)*1)-1 downto i*1),
 	addr1(13 downto 0), addr2(13 downto 0), clk1, clk2,
 	di1(((i+1)*1)-1 downto i*1), di2(((i+1)*1)-1 downto i*1),
-	vcc, vcc, gnd, gnd, write1, write2);
---	enable1, enable2, gnd, gnd, write1, write2);
+--	vcc, vcc, gnd, gnd, write1, write2);
+	enable1, enable2, gnd, gnd, write1, write2);
     end generate;
     do1(dbits+36 downto dbits) <= (others => '0');
     do2(dbits+36 downto dbits) <= (others => '0');
@@ -878,7 +876,7 @@ begin
     x : process
     begin
       assert false
-      report  "Address depth larger than 14 not supported for virtex2_syncram_dp"
+      report  "Address depth larger than 14 not supported for unisim_syncram_dp"
       severity failure;
       wait;
     end process;
@@ -889,8 +887,11 @@ end;
 
 library ieee;
 use ieee.std_logic_1164.all;
+library grlib;
+use grlib.config_types.all;
+use grlib.config.all;
 
-entity virtex2_syncram_2p is
+entity unisim_syncram_2p is
   generic (abits : integer := 6; dbits : integer := 8; sepclk : integer := 0;
 		 wrfst : integer := 0);
   port (
@@ -904,9 +905,9 @@ entity virtex2_syncram_2p is
     datain   : in std_logic_vector((dbits -1) downto 0));
 end;
 
-architecture behav of virtex2_syncram_2p is
+architecture behav of unisim_syncram_2p is
 
-  component virtex2_syncram_dp
+  component unisim_syncram_dp
   generic ( abits : integer := 10; dbits : integer := 8 );
   port (
     clk1     : in std_ulogic;
@@ -950,19 +951,19 @@ begin
 --      renable2 <= renable or write2; datain2 <= datain;
 --    end generate;
 
-    a0 : if abits <= 5 generate
+    a0 : if abits <= 5 and GRLIB_CONFIG_ARRAY(grlib_techmap_strict_ram) = 0 generate
       x0 :  generic_syncram_2p generic map (abits, dbits, sepclk)
   	port map (rclk, wclk, raddress, waddress, datain, write, dataout);
     end generate;
 
-    a6 : if abits > 5 generate
-      x0 : virtex2_syncram_dp generic map (abits, dbits)
+    a6 : if abits > 5 or GRLIB_CONFIG_ARRAY(grlib_techmap_strict_ram) /= 0 generate
+      x0 : unisim_syncram_dp generic map (abits, dbits)
          port map (wclk, waddress, datain, open, write, write, 
                    rclk, raddress, datain2, dataout, renable2, write2);
     end generate;
 end;
 
--- parametrisable sync ram generator using virtex2 block rams
+-- parametrisable sync ram generator using unisim block rams
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -971,7 +972,7 @@ library unisim;
 use unisim.RAMB16_S36_S36;
 --pragma translate_on
 
-entity virtex2_syncram64 is
+entity unisim_syncram64 is
   generic ( abits : integer := 9);
   port (
     clk     : in  std_ulogic;
@@ -983,8 +984,8 @@ entity virtex2_syncram64 is
   );
 end;
 
-architecture behav of virtex2_syncram64 is
-component virtex2_syncram
+architecture behav of unisim_syncram64 is
+component unisim_syncram
   generic ( abits : integer := 9; dbits : integer := 32);
   port (
     clk     : in std_ulogic;
@@ -1033,11 +1034,129 @@ begin
 	enable(1), enable(0), gnd(0), gnd(0), write(1), write(0));
   end generate;
   a9 : if abits > 8 generate
-    x1 : virtex2_syncram generic map ( abits, 32)
+    x1 : unisim_syncram generic map ( abits, 32)
          port map (clk, address, datain(63 downto 32), dataout(63 downto 32),
 	           enable(1), write(1));
-    x2 : virtex2_syncram generic map ( abits, 32)
+    x2 : unisim_syncram generic map ( abits, 32)
          port map (clk, address, datain(31 downto 0), dataout(31 downto 0),
 	           enable(0), write(0));
   end generate;
 end;
+
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity unisim_syncram128 is
+  generic ( abits : integer := 9);
+  port (
+    clk     : in  std_ulogic;
+    address : in  std_logic_vector (abits -1 downto 0);
+    datain  : in  std_logic_vector (127 downto 0);
+    dataout : out std_logic_vector (127 downto 0);
+    enable  : in  std_logic_vector (3 downto 0);
+    write   : in  std_logic_vector (3 downto 0)
+  );
+end;
+architecture behav of unisim_syncram128 is
+  component unisim_syncram64 is
+  generic ( abits : integer := 9);
+  port (
+    clk     : in  std_ulogic;
+    address : in  std_logic_vector (abits -1 downto 0);
+    datain  : in  std_logic_vector (63 downto 0);
+    dataout : out std_logic_vector (63 downto 0);
+    enable  : in  std_logic_vector (1 downto 0);
+    write   : in  std_logic_vector (1 downto 0)
+  );
+  end component;
+begin
+    x0 : unisim_syncram64 generic map (abits)
+         port map (clk, address, datain(127 downto 64), dataout(127 downto 64),
+	           enable(3 downto 2), write(3 downto 2));
+    x1 : unisim_syncram64 generic map (abits)
+         port map (clk, address, datain(63 downto 0), dataout(63 downto 0),
+	           enable(1 downto 0), write(1 downto 0));
+end;
+
+library ieee;
+use ieee.std_logic_1164.all;
+--pragma translate_off
+library unisim;
+use unisim.RAMB16_S36_S36;
+--pragma translate_on
+
+entity unisim_syncram128bw is
+  generic ( abits : integer := 9);
+  port (
+    clk     : in  std_ulogic;
+    address : in  std_logic_vector (abits -1 downto 0);
+    datain  : in  std_logic_vector (127 downto 0);
+    dataout : out std_logic_vector (127 downto 0);
+    enable  : in  std_logic_vector (15 downto 0);
+    write   : in  std_logic_vector (15 downto 0)
+  );
+end;
+
+architecture behav of unisim_syncram128bw is
+component unisim_syncram
+  generic ( abits : integer := 9; dbits : integer := 32);
+  port (
+    clk     : in std_ulogic;
+    address : in std_logic_vector (abits -1 downto 0);
+    datain  : in std_logic_vector (dbits -1 downto 0);
+    dataout : out std_logic_vector (dbits -1 downto 0);
+    enable  : in std_ulogic;
+    write   : in std_ulogic
+  );
+end component;
+  component RAMB16_S9_S9
+ port (
+   DOA : out std_logic_vector (7 downto 0);
+   DOB : out std_logic_vector (7 downto 0);
+   DOPA : out std_logic_vector (0 downto 0);
+   DOPB : out std_logic_vector (0 downto 0);
+   ADDRA : in std_logic_vector (10 downto 0);
+   ADDRB : in std_logic_vector (10 downto 0);
+   CLKA : in std_ulogic;
+   CLKB : in std_ulogic;
+   DIA : in std_logic_vector (7 downto 0);
+   DIB : in std_logic_vector (7 downto 0);
+   DIPA : in std_logic_vector (0 downto 0);
+   DIPB : in std_logic_vector (0 downto 0);
+   ENA : in std_ulogic;
+   ENB : in std_ulogic;
+   SSRA : in std_ulogic;
+   SSRB : in std_ulogic;
+   WEA : in std_ulogic;
+   WEB : in std_ulogic
+ );
+end component;
+
+signal gnd : std_logic_vector(3 downto 0);
+signal xa, ya : std_logic_vector(19 downto 0);
+begin
+
+  gnd <= "0000"; 
+  xa(abits-1 downto 0) <= address; xa(19 downto abits) <= (others => '0');
+  ya(abits-1 downto 0) <= address; ya(19 downto abits) <= (others => '1');
+
+  a11 : if abits <= 10 generate
+    x0 : for i in 0 to 7 generate
+      r0 : RAMB16_S9_S9 port map (
+	dataout(i*8+7+64 downto i*8+64), dataout(i*8+7 downto i*8), open, open,
+	xa(10 downto 0), ya(10 downto 0), clk, clk,
+	datain(i*8+7+64 downto i*8+64), datain(i*8+7 downto i*8), gnd(0 downto 0), gnd(0 downto 0),
+	enable(i+8), enable(i), gnd(0), gnd(0), write(i+8), write(i));
+    end generate;
+  end generate;
+  a12 : if abits > 10 generate
+    x0 : for i in 0 to 15 generate
+      x2 : unisim_syncram generic map ( abits, 8)
+         port map (clk, address, datain(i*8+7 downto i*8),
+	      dataout(i*8+7 downto i*8), enable(i), write(i));
+    end generate;
+  end generate;
+end;
+
+
+

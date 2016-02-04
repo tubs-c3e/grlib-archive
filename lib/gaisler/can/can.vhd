@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ package can is
     memtech   : integer := DEFMEMTECH;
     ncores    : integer range 1 to 8 := 1;
     sepirq    : integer range 0 to 1 := 0;
-    syncrst   : integer range 0 to 1 := 0;
+    syncrst   : integer range 0 to 2 := 0;
     ft        : integer range 0 to 1 := 0);
   port (
     resetn  : in  std_logic;
@@ -142,9 +142,9 @@ package can is
          pmask:            integer := 16#ffc#;
          pirq:             integer := 1;                 -- index of first irq
          singleirq:        integer := 0;                 -- single irq output
-         txchannels:       integer range 1 to 16 := 1;   -- 1 to 16 channels
-         rxchannels:       integer range 1 to 16 := 1;   -- 1 to 16 channels
-         ptrwidth:         integer range 4 to 16 := 16); -- 16 to 64k messages
+         txchannels:       integer range 1 to 1  := 1;   -- 1 to 1 channels
+         rxchannels:       integer range 1 to 1  := 1;   -- 1 to 1 channels
+         ptrwidth:         integer range 16 to 16 := 16);-- 16 to 64k messages
                                                          -- 2k to 8M bits
       port (
          rstn:       in    std_ulogic;
@@ -167,11 +167,12 @@ package can is
          paddr:            integer := 0;
          pmask:            integer := 16#ffc#;
          pirq:             integer := 1;                 -- index of first irq
-         txchannels:       integer range 1 to 16 := 1;   -- 1 to 16 channels
-         rxchannels:       integer range 1 to 16 := 1;   -- 1 to 16 channels
-         ptrwidth:         integer range 4 to 16 := 16;  -- 16 to 64k messages
+         txchannels:       integer range 1 to 1 := 1;    -- 1 to 16 channels
+         rxchannels:       integer range 1 to 1 := 1;    -- 1 to 16 channels
+         ptrwidth:         integer range 16 to 16 := 16; -- 16 to 64k messages
                                                          -- 2k to 8 m bits
-         singleirq:        Integer := 0);                -- single irq output
+         singleirq:        Integer := 0;                 -- single irq output
+         version:          Integer := 0);                -- 0=516, 1=524
       port (
          rstn:       in    std_ulogic;
          clk:        in    std_ulogic;

@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -32,9 +32,11 @@ use techmap.gencomp.all;
 use techmap.allclkgen.all;
 library gaisler;
 use gaisler.memctrl.all;
+use gaisler.ddrpkg.all;
 use gaisler.leon3.all;
 use gaisler.uart.all;
 use gaisler.misc.all;
+use gaisler.spi.all;
 use gaisler.net.all;
 use gaisler.jtag.all;
 library esa;
@@ -183,7 +185,6 @@ architecture rtl of leon3mp is
   -- RS232 APB Uart
   signal rxd1 : std_logic;
   signal txd1 : std_logic;
-
   
   -- Used for connecting input/output signals to the DDR2 controller
   signal core_ddr_clk  : std_logic_vector(2 downto 0);
@@ -278,7 +279,9 @@ begin
       led(2) <= dsuo.active;
     end generate;
   end generate;
-  nodcom : if CFG_DSU = 0 generate ahbso(2) <= ahbs_none; end generate;
+  nodsu : if CFG_DSU = 0 generate 
+    ahbso(2) <= ahbs_none; dsuo.tstop <= '0'; dsuo.active <= '0';
+  end generate;
 
   -- Debug UART
   dcomgen : if CFG_AHB_UART = 1 generate
@@ -316,7 +319,7 @@ begin
 
   mg0 : if (CFG_MCTRL_LEON2 = 0) generate 
     apbo(0) <= apb_none;
-    ahbso(0) <= ahbs_none;
+    ahbso(5) <= ahbs_none;
     roms_pad : outpad generic map (tech => padtech)
       port map (romsn, vcc);
     memo.bdrive(0) <= '1';
@@ -353,7 +356,11 @@ begin
     ddrc0 : ddr2spa generic map ( fabtech => spartan3, memtech => memtech,
       hindex => 4, haddr => 16#400#, hmask => 16#F00#, ioaddr => 1, 
       pwron => CFG_DDR2SP_INIT, MHz => BOARD_FREQ/1000, clkmul => 2, clkdiv => 2,
-      TRFC => CFG_DDR2SP_TRFC,
+      TRFC => CFG_DDR2SP_TRFC, 
+-- readdly must be 0 for simulation, but 1 for hardware
+--pragma translate_off
+      readdly => 0,
+--pragma translate_on
       ahbfreq => CPU_FREQ/1000, col => CFG_DDR2SP_COL, Mbyte => CFG_DDR2SP_SIZE,
       ddrbits => CFG_DDR2SP_DATAWIDTH, odten => 0)
     port map ( cgo.clklock, rstn, lclk, clkm, vcc, lock, clkml, clkml, ahbsi, ahbso(4),
@@ -428,7 +435,7 @@ begin
                    sepirq => CFG_GPT_SEPIRQ, sbits => CFG_GPT_SW,
                    ntimers => CFG_GPT_NTIM, nbits  => CFG_GPT_TW)
       port map (rstn, clkm, apbi, apbo(3), gpti, open);
-    gpti.dhalt  <= dsuo.active;
+    gpti.dhalt  <= dsuo.tstop;
     gpti.extclk <= '0';
   end generate;
   notim : if CFG_GPT_ENABLE = 0 generate apbo(3) <= apb_none; end generate;
@@ -462,7 +469,8 @@ begin
     spi1 : spictrl
       generic map (pindex => 7, paddr  => 7, pmask  => 16#fff#, pirq => 11,
                    fdepth => CFG_SPICTRL_FIFO, slvselen => CFG_SPICTRL_SLVREG,
-                   slvselsz => CFG_SPICTRL_SLVS, odmode => 0)
+                   slvselsz => CFG_SPICTRL_SLVS, odmode => 0, netlist => 0,
+                   syncram => CFG_SPICTRL_SYNCRAM, ft => CFG_SPICTRL_FT)
       port map (rstn, clkm, apbi, apbo(7), spii, spio, slvsel);
     spii.spisel <= '1';                 -- Master only
     -- MISO is shared with Flash data 0

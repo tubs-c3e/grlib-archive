@@ -32,7 +32,9 @@ package config is
   constant CFG_CLKTECH : integer := stratix2;
   constant CFG_CLKMUL : integer := (2);
   constant CFG_CLKDIV : integer := (2);
-  constant CFG_OCLKDIV : integer := 2;
+  constant CFG_OCLKDIV : integer := 1;
+  constant CFG_OCLKBDIV : integer := 0;
+  constant CFG_OCLKCDIV : integer := 0;
   constant CFG_PCIDLL : integer := 0;
   constant CFG_PCISYSCLK: integer := 0;
   constant CFG_CLK_NOFB : integer := 0;
@@ -40,14 +42,16 @@ package config is
   constant CFG_LEON3 : integer := 1;
   constant CFG_NCPU : integer := (1);
   constant CFG_NWIN : integer := (8);
-  constant CFG_V8 : integer := 16#32#;
+  constant CFG_V8 : integer := 16#32# + 4*0;
   constant CFG_MAC : integer := 0;
-  constant CFG_SVT : integer := 0;
+  constant CFG_BP : integer := 0;
+  constant CFG_SVT : integer := 1;
   constant CFG_RSTADDR : integer := 16#00000#;
   constant CFG_LDDEL : integer := (1);
+  constant CFG_NOTAG : integer := 0;
   constant CFG_NWP : integer := (2);
-  constant CFG_PWD : integer := 0*2;
-  constant CFG_FPU : integer := 0 + 16*0;
+  constant CFG_PWD : integer := 1*2;
+  constant CFG_FPU : integer := 0 + 16*0 + 32*0;
   constant CFG_GRFPUSH : integer := 0;
   constant CFG_ICEN : integer := 1;
   constant CFG_ISETS : integer := 4;
@@ -72,8 +76,9 @@ package config is
   constant CFG_MMUEN : integer := 1;
   constant CFG_ITLBNUM : integer := 8;
   constant CFG_DTLBNUM : integer := 8;
-  constant CFG_TLB_TYPE : integer := 0 + 0*2;
+  constant CFG_TLB_TYPE : integer := 0 + 1*2;
   constant CFG_TLB_REP : integer := 0;
+  constant CFG_MMU_PAGE : integer := 0;
   constant CFG_DSU : integer := 1;
   constant CFG_ITBSZ : integer := 4;
   constant CFG_ATBSZ : integer := 4;
@@ -90,17 +95,19 @@ package config is
   constant CFG_DEFMST : integer := (0);
   constant CFG_RROBIN : integer := 1;
   constant CFG_SPLIT : integer := 1;
+  constant CFG_FPNPEN : integer := 0;
   constant CFG_AHBIO : integer := 16#FFF#;
   constant CFG_APBADDR : integer := 16#800#;
   constant CFG_AHB_MON : integer := 1;
   constant CFG_AHB_MONERR : integer := 1;
   constant CFG_AHB_MONWAR : integer := 1;
+  constant CFG_AHB_DTRACE : integer := 0;
 -- DSU UART
   constant CFG_AHB_UART : integer := 0;
 -- JTAG based DSU interface
   constant CFG_AHB_JTAG : integer := 1;
 -- Ethernet DSU
-  constant CFG_DSU_ETH : integer := 1 + 0;
+  constant CFG_DSU_ETH : integer := 1 + 0 + 0;
   constant CFG_ETH_BUF : integer := 2;
   constant CFG_ETH_IPM : integer := 16#C0A8#;
   constant CFG_ETH_IPL : integer := 16#0033#;
@@ -120,7 +127,10 @@ package config is
   constant CFG_DDR2SP : integer := 1;
   constant CFG_DDR2SP_INIT : integer := 1;
   constant CFG_DDR2SP_FREQ : integer := (200);
+  constant CFG_DDR2SP_TRFC : integer := (130);
   constant CFG_DDR2SP_DATAWIDTH : integer := (64);
+  constant CFG_DDR2SP_FTEN : integer := 0;
+  constant CFG_DDR2SP_FTWIDTH : integer := 0;
   constant CFG_DDR2SP_COL : integer := (10);
   constant CFG_DDR2SP_SIZE : integer := (512);
   constant CFG_DDR2SP_DELAY0 : integer := (0);
@@ -131,6 +141,7 @@ package config is
   constant CFG_DDR2SP_DELAY5 : integer := (0);
   constant CFG_DDR2SP_DELAY6 : integer := (0);
   constant CFG_DDR2SP_DELAY7 : integer := (0);
+  constant CFG_DDR2SP_NOSYNC : integer := 0;
 -- AHB ROM
   constant CFG_AHBROMEN : integer := 0;
   constant CFG_AHBROPIP : integer := 0;
@@ -150,6 +161,7 @@ package config is
   constant CFG_UART1_FIFO : integer := 8;
 -- LEON3 interrupt controller
   constant CFG_IRQ3_ENABLE : integer := 1;
+  constant CFG_IRQ3_NSEC : integer := 0;
 -- Modular timer
   constant CFG_GPT_ENABLE : integer := 1;
   constant CFG_GPT_NTIM : integer := (2);

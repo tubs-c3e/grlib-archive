@@ -56,8 +56,8 @@
 
  ARCHITECTURE RTL OF bidir_dq_iobuf_inst_iobuf_bidir_8jr IS
 
-	 ATTRIBUTE synthesis_clearbox : boolean;
-	 ATTRIBUTE synthesis_clearbox OF RTL : ARCHITECTURE IS true;
+--	 ATTRIBUTE synthesis_clearbox : boolean;
+--	 ATTRIBUTE synthesis_clearbox OF RTL : ARCHITECTURE IS true;
 	 SIGNAL  wire_ibufa_i	:	STD_LOGIC_VECTOR (7 DOWNTO 0);
 	 SIGNAL  wire_ibufa_o	:	STD_LOGIC_VECTOR (7 DOWNTO 0);
 	 SIGNAL  wire_obufa_dynamicterminationcontrol	:	STD_LOGIC_VECTOR (7 DOWNTO 0);
@@ -151,8 +151,8 @@ END bidir_dq_iobuf_inst;
 
 ARCHITECTURE RTL OF bidir_dq_iobuf_inst IS
 
-	ATTRIBUTE synthesis_clearbox: boolean;
-	ATTRIBUTE synthesis_clearbox OF RTL: ARCHITECTURE IS TRUE;
+--	ATTRIBUTE synthesis_clearbox: boolean;
+--	ATTRIBUTE synthesis_clearbox OF RTL: ARCHITECTURE IS TRUE;
 	SIGNAL sub_wire0	: STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 

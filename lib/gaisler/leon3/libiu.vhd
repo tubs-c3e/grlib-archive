@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -31,8 +31,6 @@ library gaisler;
 use gaisler.leon3.all;
 use gaisler.arith.all;
 use gaisler.mmuconfig.all;
---library fpu;
---use fpu.libfpu.all;
 
 package libiu is
 
@@ -97,6 +95,7 @@ type icache_out_type is record
   mds              : std_ulogic;			-- memory data strobe
   cfg              : std_logic_vector(31 downto 0);
   idle             : std_ulogic;			-- idle mode
+  cstat            : l3_cstat_type;
 end record;
 
 type icdiag_in_type is record
@@ -111,7 +110,6 @@ type icdiag_in_type is record
   pflush           : std_ulogic;
   pflushaddr       : std_logic_vector(VA_I_U downto VA_I_D); 
   pflushtyp        : std_ulogic;
-  ilock            : std_logic_vector(0 to 3); 
   scanen           : std_ulogic;
 end record;
 
@@ -149,19 +147,6 @@ type dcache_out_type is record
   testen           : std_ulogic;
 end record;
 
-type tracebuf_in_type is record 
-  addr             : std_logic_vector(11 downto 0);
-  data             : std_logic_vector(127 downto 0);
-  enable           : std_logic;
-  write            : std_logic_vector(3 downto 0);
-  diag             : std_logic_vector(3 downto 0);
-end record;
-
-type tracebuf_out_type is record 
-  data             : std_logic_vector(127 downto 0);
-end record;                           
-
-
 component iu3
   generic (
     nwin     : integer range 2 to 32 := 8;
@@ -184,7 +169,8 @@ component iu3
     rstaddr  : integer              := 0;
     smp      : integer range 0 to 15 := 0;   -- support SMP systems
     fabtech  : integer range 0 to NTECH := 0;
-    clk2x    : integer := 0
+    clk2x    : integer := 0;
+    bp       : integer := 1
     );
   port (
     clk   : in  std_ulogic;
@@ -213,14 +199,6 @@ component iu3
     sclk   : in  std_ulogic
   );
 end component;
-
-  component tbufmem 
-  generic ( tech   : integer := 0; tbuf  : integer := 0; testen: integer := 0);
-  port (
-    clk : in std_ulogic;
-    di  : in tracebuf_in_type;
-    do  : out tracebuf_out_type);
-  end component;
 
 -- disassembly dummy module
 

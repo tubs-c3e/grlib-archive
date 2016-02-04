@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -42,15 +42,18 @@ entity grgpreg is
         pindex   : integer := 0;
         paddr    : integer := 0;
         pmask    : integer := 16#fff#;
-        nbits    : integer := 16;
-        rstval   : integer := 0
+        nbits    : integer range 1 to 64 := 16;
+        rstval   : integer := 0;
+        rstval2  : integer := 0;
+        extrst   : integer := 0
         );
     port (
         rst    : in  std_ulogic;
         clk    : in  std_ulogic;
         apbi   : in  apb_slv_in_type;
         apbo   : out apb_slv_out_type;
-        gprego : out std_logic_vector(nbits-1 downto 0)
+        gprego : out std_logic_vector(nbits-1 downto 0);
+        resval : in  std_logic_vector(nbits-1 downto 0) := (others => '0')
         );
 end;
 
@@ -71,7 +74,7 @@ architecture rtl of grgpreg is
 
 begin
 
-    comb : process(rst, r, apbi)
+    comb : process(rst, r, apbi, resval)
         variable readdata : std_logic_vector(31 downto 0);
         variable v        : registers;
     begin
@@ -80,8 +83,17 @@ begin
 -- read register
 
         readdata := (others => '0');
-        case apbi.paddr(4 downto 2) is
-            when "000" => readdata(nbits-1 downto 0) := r.reg;
+        case apbi.paddr(4 downto 2) is         
+            when "000" =>
+              if nbits > 32 then
+                readdata := r.reg(31 downto 0);
+              else
+                readdata(nbits-1 downto 0) := r.reg;
+              end if;              
+            when "001" =>
+              if nbits > 32 then
+                readdata(nbits-33 downto 0) := r.reg(nbits-1 downto 32);
+              end if;              
             when others =>
         end case;
 
@@ -89,13 +101,29 @@ begin
 
         if (apbi.psel(pindex) and apbi.penable and apbi.pwrite) = '1' then
             case apbi.paddr(4 downto 2) is
-                when "000" => v.reg := apbi.pwdata(nbits-1 downto 0);
+                when "000" =>
+                  if nbits > 32 then
+                    v.reg(31 downto 0) := apbi.pwdata;
+                  else
+                    v.reg := apbi.pwdata(nbits-1 downto 0);
+                  end if;
+                when "001" =>
+                  if nbits > 32 then
+                    v.reg(nbits-1 downto 32) := apbi.pwdata(nbits-33 downto 0);
+                  end if;
                 when others =>
             end case;
         end if;
 
         if rst = '0' then
+          if extrst = 0 then
             v.reg :=  conv_std_logic_vector(rstval, nbits);
+            if nbits > 32 then
+              v.reg(nbits-1 downto 32) := conv_std_logic_vector(rstval2, nbits-32);
+            end if;
+          else
+            v.reg := resval;
+          end if;
         end if;
         
         rin <= v;

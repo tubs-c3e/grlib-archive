@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -473,7 +473,7 @@ begin
     pci_mtf0 : if CFG_PCI = 2 generate	-- master/target with fifo
       pci0 : pci_mtf generic map (memtech => memtech, hmstndx => CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE, 
 	  fifodepth => log2(CFG_PCIDEPTH), device_id => CFG_PCIDID, vendor_id => CFG_PCIVID,
-	  hslvndx => 4, pindex => 9, paddr => 4, haddr => 16#E00#,
+	  hslvndx => 4, pindex => 9, paddr => 9, haddr => 16#E00#,
 	  ioaddr => 16#400#, nsync => 2)
       port map (rstn, clk, pciclk, pcii, pcio, apbi, apbo(9),
 	ahbmi, ahbmo(CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE), ahbsi, ahbso(4));
@@ -483,9 +483,9 @@ begin
       dma : pcidma generic map (memtech => memtech, dmstndx => CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+1+CFG_SVGA_ENABLE, 
 	  dapbndx => 5, dapbaddr => 5, blength => blength, mstndx => CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE,
 	  fifodepth => log2(fifodepth), device_id => CFG_PCIDID, vendor_id => CFG_PCIVID,
-	  slvndx => 4, apbndx => 4, apbaddr => 4, haddr => 16#E00#, ioaddr => 16#800#, 
+	  slvndx => 4, apbndx => 9, apbaddr => 9, haddr => 16#E00#, ioaddr => 16#800#, 
 	  nsync => 1)
-      	port map (rstn, clk, pciclk, pcii, pcio, apbo(5),  ahbmo(CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+1+CFG_SVGA_ENABLE), 
+      	port map (rstn, clk, pciclk, pcii, pcio, apbo(9),  ahbmo(CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+1+CFG_SVGA_ENABLE), 
  	  apbi, apbo(4), ahbmi, ahbmo(CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE), ahbsi, ahbso(4));
     end generate;
 
@@ -521,7 +521,7 @@ begin
 
 
   ethpads : if (CFG_GRETH = 0) generate -- no eth 
-      etho <= ('0', "00000000", '0', '0', '0', '0', '1');
+      etho <= eth_out_none;
   end generate;
 
   emdio_pad : iopad generic map (tech => padtech, level => padlevel) 

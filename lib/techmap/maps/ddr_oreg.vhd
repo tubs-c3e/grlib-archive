@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -43,28 +43,41 @@ end;
 architecture rtl of ddr_oreg is
 begin
 
-  inf : if not (tech = lattice or tech = virtex4 or tech = virtex2 or
-                tech = spartan3  or (tech = virtex5) or (tech = axcel) or
-                (tech = apa3)) generate
+  inf : if not ((tech = lattice) or (is_unisim(tech) = 1) or
+                (tech = axcel) or (tech = axdsp) or (tech = apa3) or
+		(tech = apa3e) or (tech = apa3l)) generate
     inf0 : gen_oddr_reg port map (Q, C1, C2, CE, D1, D2, R, S);
   end generate;
 
-  ax : if tech = axcel generate
+  ax : if (tech = axcel) or (tech = axdsp) generate
     ax0 : axcel_oddr_reg port map (Q, C1, C2, CE, D1, D2, R, S);
   end generate;
 
-  pa : if (tech = apa3) generate
+  pa3 : if (tech = apa3) generate
     pa0 : apa3_oddr_reg port map (Q, C1, C2, CE, D1, D2, R, S);
+  end generate;
+
+  pa3e : if (tech = apa3e) generate
+    pa0 : apa3e_oddr_reg port map (Q, C1, C2, CE, D1, D2, R, S);
+  end generate;
+
+  pa3l : if (tech = apa3l) generate
+    pa0 : apa3l_oddr_reg port map (Q, C1, C2, CE, D1, D2, R, S);
   end generate;
 
   lat : if tech = lattice generate
     lat0 : ec_oddr_reg port map (Q, C1, C2, CE, D1, D2, R, S);
   end generate;
 
-  xil : if tech = virtex4 or tech = virtex2 or tech = spartan3
-	or (tech = virtex5) generate
+  xil : if is_unisim(tech) = 1 generate
     xil0 : unisim_oddr_reg generic map (tech)
 	port map (Q, C1, C2, CE, D1, D2, R, S);
   end generate;
 
+--pragma translate_off
+  assert (tech /= easic45) and (tech /= easic90)
+    report "ddr_oreg: Not supported on eASIC. Use DDR pad instead."
+    severity failure;
+--pragma translate_on
+  
 end;

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
 --  along with this program; if not, write to the Free Software
 --  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 -----------------------------------------------------------------------------
--- Entity: 	gpio
--- File:	gpio.vhd
+-- Entity: 	grgpio
+-- File:	grgpio.vhd
 -- Author:	Jiri Gaisler - Gaisler Research
 -- Description:	Scalable general-purpose I/O port
 ------------------------------------------------------------------------------
@@ -46,7 +46,9 @@ entity grgpio is
     syncrst  : integer := 0;                    -- Only synchronous reset
     bypass   : integer := 16#0000#;
     scantest : integer := 0;
-    bpdir    : integer := 16#0000#
+    bpdir    : integer := 16#0000#;
+    pirq     : integer := 0;
+    irqgen   : integer := 0
   );
   port (
     rst    : in  std_ulogic;
@@ -60,15 +62,28 @@ end;
 
 architecture rtl of grgpio is
 
-constant REVISION : integer := 0;
+constant REVISION : integer := 2;
 constant PIMASK : std_logic_vector(31 downto 0) := '0' & conv_std_logic_vector(imask, 31);
 
 constant BPMASK : std_logic_vector(31 downto 0) := conv_std_logic_vector(bypass, 32);
 constant BPDIRM  : std_logic_vector(31 downto 0) := conv_std_logic_vector(bpdir, 32);
 
 constant pconfig : apb_config_type := (
-  0 => ahb_device_reg ( VENDOR_GAISLER, GAISLER_GPIO, 0, REVISION, 0),
+  0 => ahb_device_reg ( VENDOR_GAISLER, GAISLER_GPIO, 0, REVISION, pirq),
   1 => apb_iobar(paddr, pmask));
+
+-- Prevent tools from issuing index errors for unused code
+function calc_nirqmux return integer is
+begin
+  if irqgen = 0 then return 1; end if;
+  return irqgen;
+end;
+
+constant NIRQMUX : integer := calc_nirqmux;
+
+subtype irqmap_type is std_logic_vector(log2x(NIRQMUX)-1 downto 0);
+
+type irqmap_array_type is array (natural range <>) of irqmap_type;
 
 type registers is record
   din1  	:  std_logic_vector(nbits-1 downto 0);
@@ -80,6 +95,7 @@ type registers is record
   ilat   	:  std_logic_vector(nbits-1 downto 0);
   dir    	:  std_logic_vector(nbits-1 downto 0);
   bypass        :  std_logic_vector(nbits-1 downto 0);
+  irqmap        :  irqmap_array_type(nbits-1 downto 0);
 end record;
 
 signal r, rin : registers;
@@ -88,7 +104,8 @@ signal arst     : std_ulogic;
 begin
 
   arst <= apbi.testrst when (scantest = 1) and (apbi.testen = '1') else rst;
-
+  
+  
   comb : process(rst, r, apbi, gpioi)
   variable readdata, tmp2, dout, dir, pval, din : std_logic_vector(31 downto 0);
   variable v : registers;
@@ -108,67 +125,91 @@ begin
     dout(nbits-1 downto 0) := r.dout(nbits-1 downto 0);
 
 -- read registers
-
     readdata := (others => '0');
-    case apbi.paddr(4 downto 2) is
-    when "000" => readdata(nbits-1 downto 0) := r.din2;
-    when "001" => readdata(nbits-1 downto 0) := r.dout;
-    when "010" =>
+    case apbi.paddr(5 downto 2) is
+    when "0000" => readdata(nbits-1 downto 0) := r.din2;
+    when "0001" => readdata(nbits-1 downto 0) := r.dout;
+    when "0010" =>
       if oepol = 0 then readdata(nbits-1 downto 0) := not r.dir;
       else readdata(nbits-1 downto 0) := r.dir; end if;
-    when "011" =>
+    when "0011" =>
       if (imask /= 0) then
 	readdata(nbits-1 downto 0) :=
 	  r.imask(nbits-1 downto 0) and PIMASK(nbits-1 downto 0);
       end if;
-    when "100" =>
+    when "0100" =>
       if (imask /= 0) then
 	readdata(nbits-1 downto 0) :=
 	  r.level(nbits-1 downto 0) and PIMASK(nbits-1 downto 0);
       end if;
-    when "101" =>
+    when "0101" =>
       if (imask /= 0) then
 	readdata(nbits-1 downto 0) :=
 	  r.edge(nbits-1 downto 0) and PIMASK(nbits-1 downto 0);
       end if;
-
-    when "110" =>
+    when "0110" =>
       if (bypass /= 0) then
         readdata(nbits-1 downto 0) :=
           r.bypass(nbits-1 downto 0) and BPMASK(nbits-1 downto 0);
       end if;
-
+    when "0111" =>
+      readdata(12 downto 8) := conv_std_logic_vector(irqgen, 5);
+      readdata(4 downto 0) := conv_std_logic_vector(nbits-1, 5);
     when others =>
+      if irqgen > 1 then
+        for i in 0 to (nbits+3)/4-1 loop
+          if i = conv_integer(apbi.paddr(4 downto 2)) then
+            for j in 0 to 3 loop
+              if (j+i*4) > (nbits-1) then
+                exit;
+              end if;
+              readdata((24+log2x(NIRQMUX)-1-j*8) downto (24-j*8)) := r.irqmap(i*4+j);
+            end loop;
+          end if;
+        end loop;
+      end if;
     end case;
 
 -- write registers
 
     if (apbi.psel(pindex) and apbi.penable and apbi.pwrite) = '1' then
-      case apbi.paddr(4 downto 2) is
-      when "000" => null;
-      when "001" => v.dout := apbi.pwdata(nbits-1 downto 0);
-      when "010" =>
+      case apbi.paddr(5 downto 2) is
+      when "0000" => null;
+      when "0001" => v.dout := apbi.pwdata(nbits-1 downto 0);
+      when "0010" =>
         if oepol = 0 then v.dir  := not apbi.pwdata(nbits-1 downto 0);
         else v.dir := apbi.pwdata(nbits-1 downto 0); end if;
-      when "011" =>
+      when "0011" =>
         if (imask /= 0) then
 	  v.imask := apbi.pwdata(nbits-1 downto 0) and PIMASK(nbits-1 downto 0);
         end if;
-      when "100" =>
+      when "0100" =>
         if (imask /= 0) then
 	  v.level := apbi.pwdata(nbits-1 downto 0) and PIMASK(nbits-1 downto 0);
         end if;
-      when "101" =>
+      when "0101" =>
         if (imask /= 0) then
 	  v.edge := apbi.pwdata(nbits-1 downto 0) and PIMASK(nbits-1 downto 0);
         end if;
-
-      when "110" =>
+      when "0110" =>
         if (bypass /= 0) then
 	  v.bypass := apbi.pwdata(nbits-1 downto 0) and BPMASK(nbits-1 downto 0);
         end if;
-
+      when "0111" => 
+        null;
       when others =>
+        if irqgen > 1 then
+          for i in 0 to (nbits+3)/4-1 loop
+            if i = conv_integer(apbi.paddr(4 downto 2)) then
+              for j in 0 to 3 loop
+                if (j+i*4) > (nbits-1) then
+                  exit;
+                end if;
+                v.irqmap(i*4+j) := apbi.pwdata((24+log2x(NIRQMUX)-1-j*8) downto (24-j*8));
+              end loop;
+            end if;
+          end loop;
+        end if;
       end case;
     end if;
 
@@ -189,11 +230,24 @@ begin
       end loop;
 
       for i in 0 to nbits-1 loop
-         if i > NAHBIRQ-1 then
+        if irqgen = 0 then
+          -- IRQ for line i = i + pirq
+          if (i+pirq) > NAHBIRQ-1 then
             exit;
-         end if;
-         xirq(i) := tmp2(i);
-      end loop;
+          end if;
+          xirq(i+pirq) := tmp2(i);
+        else
+          -- IRQ for line i determined by irq select register i
+          for j in 0 to NIRQMUX-1 loop
+            if (j+pirq) > NAHBIRQ-1 then
+              exit;
+            end if;
+            if (irqgen = 1) or (j = conv_integer(r.irqmap(i))) then
+              xirq(j+pirq) := xirq(j+pirq) or tmp2(i);
+            end if;
+          end loop;
+        end if;
+      end loop;      
     end if;
 
 -- drive filtered inputs on the output record
@@ -226,18 +280,23 @@ begin
       if oepol = 1 then v.dir := (others => '0');
       else v.dir := (others => '1'); end if;
       v.dout := (others => '0');
+      v.irqmap := (others => (others => '0'));
     end if;
 
+    if irqgen < 2 then v.irqmap := (others => (others => '0')); end if;
+    
     rin <= v;
 
     apbo.prdata <= readdata; 	-- drive apb read bus
     apbo.pirq <= xirq;
 
-    if (syncrst = 1 ) and (rst = '0') then
+    if (scantest = 1) and (apbi.testen = '1') then
+      dir := (others => apbi.testoen);
+    elsif (syncrst = 1 ) and (rst = '0') then
       if oepol = 1 then dir := (others => '0');
       else dir := (others => '1'); end if;
     end if;
-
+      
     gpioo.dout <= dout;
     gpioo.oen <= dir;
     gpioo.val <= pval;

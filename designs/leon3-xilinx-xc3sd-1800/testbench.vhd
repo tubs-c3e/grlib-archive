@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -232,7 +232,7 @@ begin
     end generate;
 
     ddr2delay0 : delay_wire 
-      generic map(data_width => ddr_dq'length, delay_atob => 0.0, delay_btoa => 10.0)
+      generic map(data_width => ddr_dq'length, delay_atob => 0.0, delay_btoa => 1.0)
       port map(a => ddr_dq, b => ddr_dq2);
   end generate;
 

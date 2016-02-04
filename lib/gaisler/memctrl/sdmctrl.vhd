@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -481,10 +481,13 @@ begin
 	    end if;
 	  end if;
         when "111" => -- Load Ext-Mode Reg
-          v.sdcsn := (others => '0'); v.rasn := '0'; v.casn := '0';
-          v.sdwen := '0'; v.cmstate := active;
-          v.address(16 downto 2) := "10000000" & r.cfg.ds(1 downto 0) & r.cfg.tcsr(1 downto 0) 
-                                    & r.cfg.pasr(2 downto 0);
+          if (sdi.idle = '1') then
+            v.busy := '1';
+            v.sdcsn := (others => '0'); v.rasn := '0'; v.casn := '0';
+            v.sdwen := '0'; v.cmstate := active;
+            v.address(16 downto 2) := "10000000" & r.cfg.ds(1 downto 0) & r.cfg.tcsr(1 downto 0) 
+                                      & r.cfg.pasr(2 downto 0);
+          end if;
         when others => null;
         end case;
       end if;
@@ -699,6 +702,7 @@ begin
     sdmo.aload   <= aload;
 
     sdmo.hready  <= r.hready;
+    sdmo.vhready  <= v.hready;
 
     sdmo.hresp   <= hresp;
     sdmo.hsel    <= r.hsel;

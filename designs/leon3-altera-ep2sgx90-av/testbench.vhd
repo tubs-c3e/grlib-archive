@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -32,6 +32,8 @@ library micron;
 use micron.components.all;
 library cypress;
 use cypress.components.all;
+library hynix;
+use hynix.components.all;
 
 use work.debug.all;
 
@@ -120,7 +122,7 @@ signal ddr_dqsn  	: std_logic_vector (7 downto 0);    -- ddr dqs
 signal ddr_rdqs  	: std_logic_vector (7 downto 0);    -- ddr dqs
 signal ddr_ad      : std_logic_vector (13 downto 0);   -- ddr address
 signal ddr_ba      : std_logic_vector (1 downto 0);    -- ddr bank address
-signal ddr_dq  	: std_logic_vector (63 downto 0); -- ddr data
+signal ddr_dq, ddr_dq2 : std_logic_vector (63 downto 0); -- ddr data
 
 signal phy_gtx_clk  : std_logic;
 signal phy_mii_data : std_logic;		-- ethernet PHY interface
@@ -279,26 +281,39 @@ begin
 --  data <= buskeep(data), (others => 'H') after 250 ns;
 
   test0 :  grtestmod
-    port map ( rst, clk, error, fs_addr(21 downto 2), fs_data,
+    port map ( rst, clk, error, fs_addr(20 downto 1), fs_data,
     	       io_cen, flash_oen, flash_wen, open);
 
   error <= 'H';			  -- ERROR pull-up
 
 
+  ddr2delay : delay_wire 
+    generic map(data_width => ddr_dq'length, delay_atob => 0.0, delay_btoa => 2.5)
+    port map(a => ddr_dq, b => ddr_dq2);
+
 
   --DDR2
   ddr2mem : for i in 0 to 3 generate
-    u1 : ddr2
-    PORT MAP(
-      ck => ddr_clk(0), ck_n => ddr_clkb(0), cke => ddr_cke(0), cs_n => ddr_csb(0),
-      ras_n => ddr_rasb, cas_n => ddr_casb, we_n => ddr_web, 
-      dm_rdqs => ddr_dm(i*2+1 downto i*2), ba => ddr_ba,
-      addr => ddr_ad(12 downto 0), dq => ddr_dq(i*16+15 downto i*16),
-      dqs => ddr_dqs(i*2+1 downto i*2), dqs_n => ddr_dqsn(i*2+1 downto i*2),
-      rdqs_n => ddr_rdqs(i*2+1 downto i*2), odt => ddr_odt(0));
+    u1 : HY5PS121621F
+      generic map (TimingCheckFlag => false, PUSCheckFlag => false,
+                   index => 3-i, fname => sdramfile)
+      port map (DQ => ddr_dq2(i*16+15 downto i*16), LDQS  => ddr_dqs(i*2),
+                LDQSB => ddr_dqsn(i*2), UDQS => ddr_dqs(i*2+1),
+                UDQSB => ddr_dqsn(i*2+1), LDM => ddr_dm(i*2),
+                WEB => ddr_web, CASB => ddr_casb, RASB  => ddr_rasb, CSB => ddr_csb(0),
+                BA => ddr_ba, ADDR => ddr_ad(12 downto 0), CKE => ddr_cke(0),
+                CLK => ddr_clk(0), CLKB => ddr_clkb(0), UDM => ddr_dm(i*2+1));
+
+--    PORT MAP(
+--      ck => ddr_clk(0), ck_n => ddr_clkb(0), cke => ddr_cke(0), cs_n => ddr_csb(0),
+--      ras_n => ddr_rasb, cas_n => ddr_casb, we_n => ddr_web, 
+--      dm_rdqs => ddr_dm(i*2+1 downto i*2), ba => ddr_ba,
+--      addr => ddr_ad(12 downto 0), dq => ddr_dq(i*16+15 downto i*16),
+--      dqs => ddr_dqs(i*2+1 downto i*2), dqs_n => ddr_dqsn(i*2+1 downto i*2),
+--      rdqs_n => ddr_rdqs(i*2+1 downto i*2), odt => ddr_odt(0));
   end generate;
 
-  ddr_dq <= buskeep(ddr_dq), (others => 'H') after 250 ns;
+--  ddr_dq <= buskeep(ddr_dq), (others => 'H') after 250 ns;
   ddr_dqsn <= (others => 'U');
   
    iuerr : process

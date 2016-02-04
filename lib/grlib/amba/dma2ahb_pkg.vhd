@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -41,13 +41,9 @@
 --
 -- Library      : gaisler
 --
--- Authors      : Mr Sandi Habinc
---                Gaisler Research AB
---                Forsta Langgantan 19
---                SE-413 27 Göteborg
---                Sweden
+-- Authors      : Aeroflex Gaisler AB
 --
--- Contact      : mailto:sandi@gaisler.com
+-- Contact      : mailto:support@gaisler.com
 --                http://www.gaisler.com
 --
 -- Disclaimer   : All information is provided "as is", there is no warranty that

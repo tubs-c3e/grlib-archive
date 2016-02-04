@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@ use grlib.stdlib.all;
 use grlib.devices.all;
 library gaisler;
 use gaisler.pci.all;
-use gaisler.misc.all;
 use gaisler.pcilib.all;
 
 entity pci_mt is
@@ -239,9 +238,9 @@ begin
   variable p_done : std_logic;
   begin
     v := r2;
-    vdmai.start := '0'; vdmai.burst := '0'; vdmai.size := "10";
+    vdmai.start := '0'; vdmai.burst := '0'; vdmai.size := "010";
     vdmai.address := r.laddr; v.sync := '1';
-    vdmai.wdata := r.ldata; vdmai.write := r.pwrite;
+    vdmai.wdata := ahbdrivedata(r.ldata); vdmai.write := r.pwrite;
     v.start(0) := r2.start(csync); v.start(csync) := r.start;
     v.hreq(0) := r2.hreq(csync); v.hreq(csync) := r.hreq;
 
@@ -259,7 +258,7 @@ begin
     --apbo.prdata <= r2.pciba & addzero;
 
     if hr.hiosel = '1' then
-      if hr.hwrite = '1' then v.pciba := ahbsi.hwdata(31 downto 28); end if;
+      if hr.hwrite = '1' then v.pciba := ahbreadword(ahbsi.hwdata)(31 downto 28); end if;
       v.hrdata := r2.pciba & addzero(27 downto 0);
     end if;
 
@@ -277,7 +276,7 @@ begin
     when busy =>
       if dmao.active = '1' then
         if dmao.ready = '1' then
-          v.rready := not r.pwrite; v.tdata := dmao.rdata; v.m_state := sync2;
+          v.rready := not r.pwrite; v.tdata := dmao.rdata(31 downto 0); v.m_state := sync2;
         end if;
       else vdmai.start := '1'; end if;
     when sync2 =>
@@ -360,7 +359,7 @@ begin
 
     ahbso.hready <= hready;
     ahbso.hresp  <= hresp;
-    ahbso.hrdata <= r2.hrdata;
+    ahbso.hrdata <= ahbdrivedata(r2.hrdata);
 
   end process;
 
@@ -749,7 +748,7 @@ begin
       hr.hwrite   <= ahbsi.hwrite;
       hr.hsize    <= ahbsi.hsize(1 downto 0);
       hr.hburst   <= ahbsi.hburst;
-      hr.hwdata   <= ahbsi.hwdata;
+      hr.hwdata   <= ahbreadword(ahbsi.hwdata);
       hr.hsel     <= ahbsi.hsel(hslvndx) and ahbsi.hmbsel(0);
       hr.hiosel   <= ahbsi.hsel(hslvndx) and ahbsi.hmbsel(1);
       hr.hready   <= ahbsi.hready;

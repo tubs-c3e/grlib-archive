@@ -1,4 +1,4 @@
-TECHNOLOGY=virtex5
+TECHNOLOGY=Virtex5
 PACKAGE=ff1153
 ifeq ("$(CONFIG_FPGA_LX110)","y")
 PART=xc5vlx110

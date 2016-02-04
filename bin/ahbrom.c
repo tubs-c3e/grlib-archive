@@ -31,7 +31,7 @@ main (argc, argv)
   fprintf(wfp, "\n\
 ----------------------------------------------------------------------------\n\
 --  This file is a part of the GRLIB VHDL IP LIBRARY\n\
---  Copyright (C) 2009 Aeroflex Gaisler\n\
+--  Copyright (C) 2010 Aeroflex Gaisler\n\
 ----------------------------------------------------------------------------\n\
 -- Entity: 	ahbrom\n\
 -- File:	ahbrom.vhd\n\
@@ -78,7 +78,6 @@ begin\n\
   ahbso.hresp   <= \"00\"; \n\
   ahbso.hsplit  <= (others => '0'); \n\
   ahbso.hirq    <= (others => '0');\n\
-  ahbso.hcache  <= '1';\n\
   ahbso.hconfig <= hconfig;\n\
   ahbso.hindex  <= hindex;\n\
 \n\
@@ -90,7 +89,7 @@ begin\n\
   end process;\n\
 \n\
   p0 : if pipe = 0 generate\n\
-    ahbso.hrdata  <= romdata;\n\
+    ahbso.hrdata  <= ahbdrivedata(romdata);\n\
     ahbso.hready  <= '1';\n\
   end generate;\n\
 \n\
@@ -102,7 +101,7 @@ begin\n\
 	hready <= ahbsi.hready;\n\
 	ahbso.hready <=  (not rst) or (hsel and hready) or\n\
 	  (ahbsi.hsel(hindex) and not ahbsi.htrans(1) and ahbsi.hready);\n\
-	ahbso.hrdata  <= romdata;\n\
+	ahbso.hrdata  <= ahbdrivedata(romdata);\n\
       end if;\n\
     end process;\n\
   end generate;\n\

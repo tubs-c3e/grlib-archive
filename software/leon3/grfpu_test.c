@@ -45,6 +45,7 @@ extern void grfpc_spdpdep_tst(uint64 *a);
 extern void grfpc_spdpdep_tst2(uint64 *a);
 extern void initfpreg();
 extern int grfpc_edac_test();
+extern int test_pl1(void);
 	
 struct dp3_type {
   uint64 op1;
@@ -409,6 +410,8 @@ int grfpu_test()
   /* Check for FSMULD exponent check bug fixed in revision 3497 */
   grfpu_fsmuld(0x00800000, 0x3f000000, &z); if ((z != 0x3800000000000000LL) || (tfsr != 0)) fail(30);
   grfpu_fsmuld(0x7f7fffff, 0x40000000, &z); if ((z != 0x47FFFFFFE0000000LL) || (tfsr != 0)) fail(31);
+  /* Check for FSMULD corner case bug fixed in rev. 4018 */
+  grfpu_fsmuld(0x7f400000, 0x3fc00000, &z); if ((z != 0x47f2000000000000LL) || (tfsr != 0)) fail(33);
   /* Check that the full result vector is propagated */
   grfpu_fsmuld(0x7f7fffff, 0x7f7fffff, &z); if ((z != 0x4FEFFFFFC0000020LL) || (tfsr != 0)) fail(32);
 
@@ -431,6 +434,10 @@ int grfpu_test()
   /* FSQRTS */
   tfsr = 0;
   if ((grfpu_fsqrts(0x47c80000) != 0x43a00000) || (tfsr != 0)) fail(19);
+  /* Check FSQRTS handling of exact results in round-to-zero mode, fixed in revision 4029 */
+  set_fsr(0x40000000);
+  if ((grfpu_fsqrts(0x07D625E2) != 0x23A59000) || (tfsr != 0)) fail(35);
+  if ((grfpu_fsqrts(0x4A882000) != 0x45040000) || (tfsr != 0)) fail(35);
 
 
   /* check non-IEEE mode */
@@ -441,6 +448,10 @@ int grfpu_test()
   /* Check if we have fitos/fitod bug, fixed in rev 2993 */
   if ((grfpu_fitos(1) != 0x3f800000)  || (tfsr != 0)) fail(20);
   if ((grfpu_fitod(1) != 0x3ff0000000000000LL)  || (tfsr != 0)) fail(20);
+
+  /* Check infinity arithmetic bug in non-IEEE mode and down-rounding mode, fixed in rev 4021 */
+  set_fsr(0x40400000);
+  z=grfpu_fsubd(denorm,pinf); if ((z != ninf) || (tfsr != 0)) fail(34);
 
   /* check RZ, RP, RM rounding modes */
   set_fsr(0x40000000); x = 0x3ff0000000000000LL; y = 0x3ca00000100200f0LL;
@@ -520,7 +531,8 @@ int grfpu_test()
   if (*(&grfpufq+2) != 0) fail(24);
   if (*(&grfpufq+3) != 0) fail(24);
 
-  
+  /* Check for pipelined FMULS bug fixed in rev 3858 */
+  if (test_pl1() == 1) fail(25);  
 
   /* look-up table test */
   x = 0x3100a4068f346c9bLL; y = 0;

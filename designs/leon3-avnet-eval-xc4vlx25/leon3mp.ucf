@@ -4,9 +4,9 @@ TIMESPEC "TS_clk_100mhz" = PERIOD "clk_100mhz" 10.00 ns HIGH 50 %;
 #INST sysclk_DCM LOC=DCM_ADV_X0Y3;
 
 # Enable those for ISE10
-#NET "etx_clk" CLOCK_DEDICATED_ROUTE = FALSE;
-#NET "erx_clk" CLOCK_DEDICATED_ROUTE = FALSE;
-#NET "ddr_clk_fb" CLOCK_DEDICATED_ROUTE = FALSE;
+NET "etx_clk" CLOCK_DEDICATED_ROUTE = FALSE;
+NET "erx_clk" CLOCK_DEDICATED_ROUTE = FALSE;
+NET "ddr_clk_fb" CLOCK_DEDICATED_ROUTE = FALSE;
 
 #############################################################################
 ##                           RESET, UART                                   ##

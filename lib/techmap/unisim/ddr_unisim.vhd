@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -48,9 +48,6 @@ end;
   
 architecture rtl of unisim_iddr_reg is
     attribute BOX_TYPE : string;
---    attribute syn_useioff : boolean; 
---    attribute syn_useioff of rtl : architecture is false;
-
     component IDDR
       generic ( DDR_CLK_EDGE : string := "SAME_EDGE";
           INIT_Q1 : bit := '0';
@@ -66,47 +63,61 @@ architecture rtl of unisim_iddr_reg is
           S : in std_ulogic);
     end component;
     attribute BOX_TYPE of IDDR : component is "PRIMITIVE";
+
+    component IDDR2
+	generic
+	(
+		DDR_ALIGNMENT : string := "NONE";
+		INIT_Q0 : bit := '0';
+		INIT_Q1 : bit := '0';
+		SRTYPE : string := "SYNC"
+	);
+	port
+	(
+		Q0 : out std_ulogic;
+		Q1 : out std_ulogic;
+		C0 : in std_ulogic;
+		C1 : in std_ulogic;
+		CE : in std_ulogic;
+		D : in std_ulogic;
+		R : in std_ulogic;
+		S : in std_ulogic
+	);
+    end component;
+
   signal preQ2 : std_ulogic;
    
 begin
 
       
--- SAME EDGE mode have when this is written an incorrect P&R
--- timing model, instead OPPOSITE_MODE with an extra register is used
---      V4 : if tech = virtex4 generate
---        U0 : IDDR
---          generic map(
---            DDR_CLK_EDGE => "SAME_EDGE",
---            INIT_Q1 =>  '0',
---            INIT_Q2 =>  '0',
---            SRTYPE =>  "ASYNC")
---          Port map(
---            Q1 => Q1,
---            Q2 => Q2,
---            C => C1,
---            CE => CE,                 
---            D => D,
---            R => R,    
---            S => S);
---     end generate;
-
-       V4 : if (tech = virtex4) or (tech = virtex5) generate
-       U0 : IDDR generic map( DDR_CLK_EDGE => "OPPOSITE_EDGE"
---           ,INIT_Q1 =>  '0',
---           INIT_Q2 =>  '0',
---           SRTYPE =>  "ASYNC"
-)
+     V4 : if (tech = virtex4) or (tech = virtex5) or (tech = virtex6) generate
+       U0 : IDDR generic map( DDR_CLK_EDGE => "OPPOSITE_EDGE")
          Port map( Q1 => Q1, Q2 => preQ2, C => C1, CE => CE,                 
            	   D => D, R => R,    S => S);
 
-      q3reg : process (C1, preQ2, R)
-        begin
+       q3reg : process (C1, preQ2, R)
+       begin
           if R='1' then --asynchronous reset, active high
             Q2 <= '0';
           elsif C1'event and C1='1' then --Clock event - posedge
             Q2 <= preQ2;
           end if;
-        end process;
+       end process;
+     end generate;
+
+     S6 : if (tech = spartan6) generate
+       U0 : IDDR2 
+         Port map( Q0 => Q1, Q1 => preQ2, C0 => C1, C1 => C2, CE => CE,                 
+           	   D => D, R => R,    S => S);
+
+       q3reg : process (C1, preQ2, R)
+       begin
+          if R='1' then --asynchronous reset, active high
+            Q2 <= '0';
+          elsif C1'event and C1='1' then --Clock event - posedge
+            Q2 <= preQ2;
+          end if;
+       end process;
      end generate;
 
     V2 : if tech = virtex2 or tech = spartan3 generate
@@ -140,18 +151,15 @@ begin
         end if;
       end process;
 
- -- NOTE: You must include the following constraints in the .ucf
- -- file when running back-end tools,
- -- in order to ensure that IOB DDR registers are used:
- -- -- INST "q2_reg" IOB=TRUE;
- -- INST "q1_reg" IOB=TRUE;
- -- -- Depending on the synthesis tools you use, it may be required to
- -- check the edif file for modifications to
- -- original net names...in this case, Synopsys changed the
- -- names: q1 and q2 to q1_reg and q2_reg
-
     end generate;
       
+--    S6 : if tech = spartan6 generate
+--
+--      x0 : IFDDRRSE port map (
+--	Q0 => Q1, Q1 => Q2, C0 => C1, C1 => C2, CE => CE,
+--	D => D, R => R, S => S);
+--
+--    end generate;
 end;
 
 library ieee;
@@ -161,6 +169,7 @@ use techmap.gencomp.all;
 -- pragma translate_off
 library unisim;
 use unisim.oddr;
+use unisim.oddr2;
 use unisim.FDDRRSE;
 --pragma translate_on
 
@@ -200,6 +209,28 @@ architecture rtl of unisim_oddr_reg is
   attribute BOX_TYPE of
     ODDR : component is "PRIMITIVE";
 
+  component ODDR2
+	generic
+	(
+		DDR_ALIGNMENT : string := "NONE";
+		INIT : bit := '0';
+		SRTYPE : string := "SYNC"
+	);
+	port
+	(
+		Q : out std_ulogic;
+		C0 : in std_ulogic;
+		C1 : in std_ulogic;
+		CE : in std_ulogic;
+		D0 : in std_ulogic;
+		D1 : in std_ulogic;
+		R : in std_ulogic;
+		S : in std_ulogic
+	);
+  end component;
+  attribute BOX_TYPE of
+    ODDR2 : component is "PRIMITIVE";
+
   component FDDRRSE
 --    generic ( INIT : bit := '0');
     port
@@ -221,25 +252,7 @@ architecture rtl of unisim_oddr_reg is
   
 begin
 
--- SAME EDGE mode have when this is written an incorrect P&R
--- timing model, instead OPPOSITE_MODE with an extra register is used
---    V4 : if tech = virtex4 generate
---      U0 : ODDR
---        generic map(
---          DDR_CLK_EDGE => "SAME_EDGE",
---          INIT => '0',
---          SRTYPE => "ASYNC")
---        port map(
---          Q => Q,
---          C => C1,
---          CE => CE,
---          D1 => D1,
---          D2 => D2,
---          R => R,
---          S => S);
---      end generate;
-
-  V4 : if (tech = virtex4) or (tech = virtex5) generate
+  V4 : if (tech = virtex4) or (tech = virtex5) or (tech = virtex6) generate
 
     d2reg : process (C1, D2, R)
        begin
@@ -286,6 +299,33 @@ begin
           S => S);
   end generate;
       
+
+  s6 : if tech = spartan6 generate
+
+      d2reg : process (C1, D2, R)
+      begin
+        if R='1' then --asynchronous reset, active high
+          preD2 <= '0';
+        elsif C1'event and C1='1' then --Clock event - posedge
+          preD2 <= D2;
+        end if;
+      end process;
+          
+       c_dm : component ODDR2  
+          port map ( 
+             Q => Q, 
+             C0 => C1, 
+             C1 => C2, 
+             CE => CE, 
+             D0 => D1, 
+             D1 => preD2, 
+             R => R, 
+             S => R
+             );
+
+          
+  end generate;
+
 
 end ;
 

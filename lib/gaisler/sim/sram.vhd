@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -29,10 +29,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use std.textio.all;
 
-library gaisler;
-use gaisler.sim.all;
 library grlib;
 use grlib.stdlib.all;
+use grlib.stdio.all;
 
 entity sram is
   generic (
@@ -100,37 +99,42 @@ begin
           if L1'length > 0 then	--'
             read(L1, ch);
             if (ch = 'S') or (ch = 's') then
-              hexread(L1, rectype);
-              hexread(L1, reclen);
+              hread(L1, rectype);
+              hread(L1, reclen);
 	      len := conv_integer(reclen)-1;
 	      recaddr := (others => '0');
 	      case rectype is 
 		when "0001" =>
-                  hexread(L1, recaddr(15 downto 0));
+                  hread(L1, recaddr(15 downto 0));
 		when "0010" =>
-                  hexread(L1, recaddr(23 downto 0));
+                  hread(L1, recaddr(23 downto 0));
 		when "0011" =>
-                  hexread(L1, recaddr);
-		  recaddr(31 downto abits) := (others => '0');
+                  hread(L1, recaddr);
 		when others => next;
 	      end case;
-              hexread(L1, recdata);
+              hread(L1, recdata);
               if index = 6 then
+	        recaddr(31 downto abits) := (others => '0');
 	        ai := conv_integer(recaddr);
  	        for i in 0 to 15 loop
                   MEMA(ai+i) := recdata((i*8) to (i*8+7));
 	        end loop;
               elsif (index = 4) or (index = 5) then
+	        recaddr(31 downto abits+1) := (others => '0');
 	        ai := conv_integer(recaddr)/2;
  	        for i in 0 to 7 loop
                   MEMA(ai+i) := recdata((i*16+(index-4)*8) to (i*16+(index-4)*8+7));
 	        end loop;
               else 
+	        recaddr(31 downto abits+2) := (others => '0');
 	        ai := conv_integer(recaddr)/4;
  	        for i in 0 to 3 loop
                   MEMA(ai+i) := recdata((i*32+index*8) to (i*32+index*8+7));
 	        end loop;
               end if;
+	      if ai = 0 then
+		ai := 1;
+	      end if;
             end if;
           end if;
         end if;

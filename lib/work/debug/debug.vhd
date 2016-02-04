@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -31,13 +31,15 @@ use grlib.amba.all;
 package debug is
 
 component grtestmod
-  generic (halt : integer := 0);
+  generic (
+    halt        : integer := 0;
+    width       : integer := 32);
   port (
     resetn	: in  std_ulogic;
     clk		: in  std_ulogic;
     errorn	: in std_ulogic;
     address 	: in std_logic_vector(21 downto 2);
-    data	: inout std_logic_vector(31 downto 0);
+    data	: inout std_logic_vector(width-1 downto 0);
     iosn        : in std_ulogic;
     oen         : in std_ulogic;
     writen  	: in std_ulogic; 		

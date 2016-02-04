@@ -200,8 +200,7 @@ LIBRARY WORK;
 
 library grlib;
 use grlib.stdlib.all;
-library gaisler;
-use gaisler.sim.all;
+use grlib.stdio.all;
 
 ENTITY mt48lc16m16a2 IS
     GENERIC (
@@ -1206,26 +1205,30 @@ BEGIN
                 readline(file_load, l);
                 read(l, ch);
                 if (ch /= 'S') or (ch /= 's') then
-                  hexread(l, rectype);
-                  hexread(l, reclen);
+                  hread(l, rectype);
+                  hread(l, reclen);
 		  recaddr := (others => '0');
 		  case rectype is 
 		  when "0001" =>
-                    hexread(l, recaddr(15 downto 0));
+                    hread(l, recaddr(15 downto 0));
 		  when "0010" =>
-                    hexread(l, recaddr(23 downto 0));
+                    hread(l, recaddr(23 downto 0));
 		  when "0011" =>
-                    hexread(l, recaddr);
+                    hread(l, recaddr);
 		    recaddr(31 downto 24) := (others => '0');
 		  when others => next;
 		  end case;
-	 	  if true then
-                    hexread(l, recdata);
+                  if L.all'length*4 < recdata'length then
+                    hread(l, recdata(0 to L.all'length*4-1));
+                  else
+                    hread(l, recdata);
+                  end if;
+
+	 	  if index < 32 then
 		    Bank_Load := recaddr(25 downto 24);
 		    Rows_Load := recaddr(23 downto 11);
 		    Cols_Load := recaddr(10 downto 2);
                     Init_Mem (Bank_Load, To_Integer(Rows_Load));
-
                     IF Bank_Load = "00" THEN
 		      for i in 0 to 3 loop
                         Bank0 (To_Integer(Rows_Load)) (To_Integer(Cols_Load)+i) := ('1' & recdata(i*32+index to i*32+index+15));
@@ -1243,7 +1246,28 @@ BEGIN
                         Bank3 (To_Integer(Rows_Load)) (To_Integer(Cols_Load)+i) := ('1' & recdata(i*32+index to i*32+index+15));
 		      end loop;
                     END IF;
-
+		  else
+		    Bank_Load := recaddr(26 downto 25);
+		    Rows_Load := recaddr(24 downto 12);
+		    Cols_Load := recaddr(11 downto 3);
+                    Init_Mem (Bank_Load, To_Integer(Rows_Load));
+                    IF Bank_Load = "00" THEN
+		      for i in 0 to 1 loop
+                        Bank0 (To_Integer(Rows_Load)) (To_Integer(Cols_Load)+i) := ('1' & recdata(i*64+index-32 to i*64+index-32+15));
+		      end loop;
+                    ELSIF Bank_Load = "01" THEN
+		      for i in 0 to 1 loop
+                        Bank1 (To_Integer(Rows_Load)) (To_Integer(Cols_Load)+i) := ('1' & recdata(i*64+index-32 to i*64+index-32+15));
+		      end loop;
+                    ELSIF Bank_Load = "10" THEN
+		      for i in 0 to 1 loop
+                        Bank2 (To_Integer(Rows_Load)) (To_Integer(Cols_Load)+i) := ('1' & recdata(i*64+index-32 to i*64+index-32+15));
+		      end loop;
+                    ELSIF Bank_Load = "11" THEN
+		      for i in 0 to 1 loop
+                        Bank3 (To_Integer(Rows_Load)) (To_Integer(Cols_Load)+i) := ('1' & recdata(i*64+index-32 to i*64+index-32+15));
+		      end loop;
+                    END IF;
                   END IF;
                 END IF;
             END LOOP;

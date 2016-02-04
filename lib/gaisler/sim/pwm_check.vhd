@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -126,7 +126,7 @@ architecture sim of pwm_check is
     6 => (others=>16),
     7 => (others=>17));
 
-  -- Period, compare, and dead band values for each pwm period in subtest 1,
+  -- Period, compare, and dead band values for each pwm period in subtest 2,
   -- in clock cycles
   constant ST2_PER : st2_array := (
     0 => (others=>200),

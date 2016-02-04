@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ begin
       op := inst(31 downto 30); op3 := inst(24 downto 19);
       fpins := (op = FMT3) and ((op3 = FPOP1) or (op3 = FPOP2));
       fpld := (op = LDST) and ((op3 = LDF) or (op3 = LDDF) or (op3 = LDFSR));
-      valid := (((not annul) and pv) = '1') and (not ((fpins or fpld) and (trap = '0')));
+      valid := (((not annul) and pv) = '1'); --and (not ((fpins or fpld) and (trap = '0')));
       valid := valid and (holdn = '1');
     if rising_edge(clk) and (rstn = '1') then
       print_insn (iindex, pc(31 downto 2) & "00", inst, 

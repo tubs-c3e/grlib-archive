@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -54,7 +54,10 @@ package misc is
   type gptimer_in_type is record
     dhalt    : std_ulogic;
     extclk   : std_ulogic;
+    wdogen   : std_ulogic;
   end record;
+
+  type gptimer_in_vector is array (natural range <>) of gptimer_in_type;
 
   type gptimer_out_type is record
     tick     : std_logic_vector(0 to 7);
@@ -62,6 +65,13 @@ package misc is
     wdogn    : std_ulogic;
     wdog    : std_ulogic;
   end record;
+
+  type gptimer_out_vector is array (natural range <>) of gptimer_out_type;
+
+  constant gptimer_in_none : gptimer_in_type := ('0', '0', '0');
+
+  constant gptimer_out_none : gptimer_out_type :=
+    ((others => '0'), (others => '0'), '1', '0');
 
   component gptimer
   generic (
@@ -73,7 +83,8 @@ package misc is
     sbits    : integer := 16;			-- scaler bits
     ntimers  : integer range 1 to 7 := 1; 	-- number of timers
     nbits    : integer := 32;			-- timer bits
-    wdog     : integer := 0
+    wdog     : integer := 0;
+    ewdogen  : integer := 0
   );
   port (
     rst    : in  std_ulogic;
@@ -93,7 +104,9 @@ package misc is
     haddr   : integer := 0;
     hmask   : integer := 16#fff#;
     tech    : integer := DEFMEMTECH;
-    kbytes  : integer := 1);
+    kbytes  : integer := 1;
+    pipe    : integer := 0;
+    maccsz  : integer := AHBDW);
   port (
     rst    : in  std_ulogic;
     clk    : in  std_ulogic;
@@ -136,7 +149,7 @@ package misc is
       hindex    : integer := 0;
       haddr     : integer := 0;
       hmask     : integer := 16#fff#;
-      tech      : integer := DEFMEMTECH; 
+      tech      : integer := DEFMEMTECH;
       kbytes    : integer := 1;
       pindex    : integer := 0;
       paddr     : integer := 0;
@@ -153,15 +166,15 @@ package misc is
     );
   end component;
 
-  component ahbdpram 
+  component ahbdpram
   generic (
     hindex  : integer := 0;
     haddr   : integer := 0;
     hmask   : integer := 16#fff#;
-    tech    : integer := 2; 
+    tech    : integer := 2;
     abits   : integer range 8 to 19 := 8;
     bytewrite : integer range 0 to 1 := 0
-  ); 
+  );
   port (
     rst     : in  std_ulogic;
     clk     : in  std_ulogic;
@@ -172,7 +185,7 @@ package misc is
     datain  : in std_logic_vector(31 downto 0);
     dataout : out std_logic_vector(31 downto 0);
     enable  : in std_ulogic;			-- active high chip select
-    bwrite  : in std_logic_vector(0 to 3)	-- active high byte write enable
+    write  : in std_logic_vector(0 to 3)	-- active high byte write enable
   );						-- big-endian write: bwrite(0) => data(31:24)
   end component;
 
@@ -180,11 +193,12 @@ package misc is
   component ahbtrace is
   generic (
     hindex  : integer := 0;
-    ioaddr    : integer := 16#000#;
-    iomask    : integer := 16#E00#;
+    ioaddr  : integer := 16#000#;
+    iomask  : integer := 16#E00#;
     tech    : integer := DEFMEMTECH;
     irq     : integer := 0;
-    kbytes  : integer := 1);
+    kbytes  : integer := 1;
+    ahbfilt : integer := 0);
   port (
     rst    : in  std_ulogic;
     clk    : in  std_ulogic;
@@ -194,43 +208,96 @@ package misc is
   );
   end component;
 
-type ahb_dma_in_type is record
-  address         : std_logic_vector(31 downto 0);
-  wdata           : std_logic_vector(31 downto 0);
-  start           : std_ulogic;
-  burst           : std_ulogic;
-  write           : std_ulogic;
-  busy            : std_ulogic;
-  irq             : std_ulogic;
-  size            : std_logic_vector(1 downto 0);
-end record;
-
-type ahb_dma_out_type is record
-  start           : std_ulogic;
-  active          : std_ulogic;
-  ready           : std_ulogic;
-  retry           : std_ulogic;
-  mexc            : std_ulogic;
-  haddr           : std_logic_vector(9 downto 0);
-  rdata           : std_logic_vector(31 downto 0);
-end record;
-
-  component ahbmst
+  component ahbtrace_mb is
   generic (
     hindex  : integer := 0;
-    hirq    : integer := 0;
-    venid   : integer := VENDOR_GAISLER;
-    devid   : integer := 0;
-    version : integer := 0;
-    chprot  : integer := 3;
-    incaddr : integer := 0);
-   port (
-      rst  : in  std_ulogic;
-      clk  : in  std_ulogic;
-      dmai : in ahb_dma_in_type;
-      dmao : out ahb_dma_out_type;
-      ahbi : in  ahb_mst_in_type;
-      ahbo : out ahb_mst_out_type
+    ioaddr  : integer := 16#000#;
+    iomask  : integer := 16#E00#;
+    tech    : integer := DEFMEMTECH;
+    irq     : integer := 0;
+    kbytes  : integer := 1;
+    ahbfilt : integer := 0);
+  port (
+    rst    : in  std_ulogic;
+    clk    : in  std_ulogic;
+    ahbsi  : in  ahb_slv_in_type;       -- Register interface
+    ahbso  : out ahb_slv_out_type;
+    tahbmi : in  ahb_mst_in_type;       -- Trace
+    tahbsi : in  ahb_slv_in_type
+  );
+  end component;
+
+  component ahbtrace_mmb is
+  generic (
+    hindex  : integer := 0;
+    ioaddr  : integer := 16#000#;
+    iomask  : integer := 16#E00#;
+    tech    : integer := DEFMEMTECH;
+    irq     : integer := 0;
+    kbytes  : integer := 1;
+    ahbfilt : integer := 0;
+    ntrace  : integer range 1 to 8 := 1);
+  port (
+    rst     : in  std_ulogic;
+    clk     : in  std_ulogic;
+    ahbsi   : in  ahb_slv_in_type;       -- Register interface
+    ahbso   : out ahb_slv_out_type;
+    tahbmiv : in  ahb_mst_in_vector_type(0 to ntrace-1);       -- Trace
+    tahbsiv : in  ahb_slv_in_vector_type(0 to ntrace-1)
+  );
+  end component;
+
+  type ahbmst2_request is record
+    req: std_logic;        -- Request enable bit
+    wr: std_logic;
+    hsize: std_logic_vector(2 downto 0);
+    hburst: std_logic_vector(2 downto 0);
+    hprot: std_logic_vector(3 downto 0);
+    addr: std_logic_vector(32-1 downto 0);
+    burst_cont: std_logic; -- Set for all except the first request in a burst
+    burst_wrap: std_logic; -- High for the request where wrap occurs
+  end record;
+
+  constant ahbmst2_request_none: ahbmst2_request := (
+    req => '0', wr => '0', hsize => "010", hburst => "000", burst_cont => '0',
+    burst_wrap => '0', addr => (others => '0'), hprot => "0011");
+
+  type ahbmst2_in_type is record
+    request: ahbmst2_request;
+    wrdata: std_logic_vector(AHBDW-1 downto 0);
+    -- For back-to-back transfers or bursts, this must be set when done is high
+    -- and then copied over to request after the rising edge of clk.
+    next_request: ahbmst2_request;
+    -- Insert busy cycle, must only be asserted when request and next_request
+    -- are both part of the same burst.
+    busy: std_logic;
+    hlock: std_logic; -- Lock signal, passed through directly to AMBA.
+    keepreq: std_logic;  -- Keep bus request high even when no request needs it.
+  end record;
+
+  type ahbmst2_out_type is record
+    done: std_logic;
+    flip: std_logic;
+    fail: std_logic;
+    rddata: std_logic_vector(AHBDW-1 downto 0);
+  end record;
+
+  component ahbmst2 is
+    generic (
+      hindex: integer := 0;
+      venid: integer;
+      devid: integer;
+      version: integer;
+      dmastyle: integer range 1 to 3 := 3;
+      syncrst: integer range 0 to 1 := 1
+      );
+    port (
+      clk: in std_logic;
+      rst: in std_logic;
+      ahbi: in ahb_mst_in_type;
+      ahbo: out ahb_mst_out_type;
+      m2i: in ahbmst2_in_type;
+      m2o: out ahbmst2_out_type
       );
   end component;
 
@@ -247,12 +314,6 @@ end record;
     sig_out  : std_logic_vector(31 downto 0);
   end record;
 
-  type ahb2ahb_ctrl_type is record
-    slck  : std_ulogic;
-    blck  : std_ulogic;
-    mlck  : std_ulogic;
-  end record;
-
  component grgpio
   generic (
     pindex   : integer := 0;
@@ -264,7 +325,9 @@ end record;
     syncrst  : integer := 0;
     bypass   : integer := 16#0000#;
     scantest : integer := 0;
-    bpdir    : integer := 16#0000#
+    bpdir    : integer := 16#0000#;
+    pirq     : integer := 0;
+    irqgen   : integer := 0
   );
   port (
     rst    : in  std_ulogic;
@@ -276,81 +339,115 @@ end record;
   );
   end component;
 
+  type ahb2ahb_ctrl_type is record
+    slck  : std_ulogic;
+    blck  : std_ulogic;
+    mlck  : std_ulogic;
+  end record;
+
+  constant ahb2ahb_ctrl_none : ahb2ahb_ctrl_type := ('0', '0', '0');
+
+  type ahb2ahb_ifctrl_type is record
+    mstifen : std_ulogic;
+    slvifen : std_ulogic;
+  end record;
+
+  constant ahb2ahb_ifctrl_none : ahb2ahb_ifctrl_type := ('1', '1');
+
   component ahb2ahb
   generic(
-    memtech : integer := 0;
-    hsindex : integer := 0;
-    hmindex : integer := 0;
-    slv     : integer := 0;
-    dir     : integer := 0;   -- 0 - down, 1 - up
-    ffact    : integer := 0;
-    pfen    : integer range 0 to 1 := 0;
-    rbufsz  : integer range 2 to 32 := 8;
-    wbufsz  : integer range 2 to 32 := 2;
-    iburst   : integer range 4 to 8 :=  8;
-    rburst   : integer range 2 to 32 := 8;
-    irqsync : integer range 0 to 2 := 0;
-    bar0     : integer range 0 to 1073741823 := 0;
-    bar1     : integer range 0 to 1073741823 := 0;
-    bar2     : integer range 0 to 1073741823 := 0;
-    bar3     : integer range 0 to 1073741823 := 0;
-    sbus     : integer := 0;
-    mbus     : integer := 0;
-    ioarea   : integer := 0;
-    ibrsten  : integer := 0;
-    lckdac   : integer range 0 to 2 := 0);
+    memtech     : integer := 0;
+    hsindex     : integer := 0;
+    hmindex     : integer := 0;
+    slv         : integer range 0 to 1 := 0;
+    dir         : integer range 0 to 1 := 0;   -- 0 - down, 1 - up
+    ffact       : integer range 0 to 15:= 2;
+    pfen        : integer range 0 to 1 := 0;
+    wburst      : integer range 2 to 32 := 8;
+    iburst      : integer range 4 to 8 :=  8;
+    rburst      : integer range 2 to 32 := 8;
+    irqsync     : integer range 0 to 2 := 0;
+    bar0        : integer range 0 to 1073741823 := 0;
+    bar1        : integer range 0 to 1073741823 := 0;
+    bar2        : integer range 0 to 1073741823 := 0;
+    bar3        : integer range 0 to 1073741823 := 0;
+    sbus        : integer := 0;
+    mbus        : integer := 0;
+    ioarea      : integer := 0;
+    ibrsten     : integer := 0;
+    lckdac      : integer range 0 to 2 := 0;
+    slvmaccsz   : integer range 32 to 256 := 32;
+    mstmaccsz   : integer range 32 to 256 := 32;
+    rdcomb      : integer range 0 to 2 := 0;
+    wrcomb      : integer range 0 to 2 := 0;
+    combmask    : integer := 16#ffff#;
+    allbrst     : integer range 0 to 2 := 0;
+    ifctrlen    : integer range 0 to 1 := 0;
+    fcfs        : integer range 0 to NAHBMST := 0;
+    fcfsmtech   : integer range 0 to NTECH := inferred;
+    scantest    : integer range 0 to 1 := 0;
+    split       : integer range 0 to 1 := 1);
   port (
-    rstn   : in std_ulogic;
-    hclkm  : in std_ulogic;
-    hclks  : in std_ulogic;
-    ahbsi  : in ahb_slv_in_type;
-    ahbso  : out ahb_slv_out_type;
-    ahbmi  : in ahb_mst_in_type;
-    ahbmo  : out ahb_mst_out_type;
-    ahbso2 : in ahb_slv_out_vector;
-    lcki   : in ahb2ahb_ctrl_type;
-    lcko   : out ahb2ahb_ctrl_type
+    rstn        : in  std_ulogic;
+    hclkm       : in  std_ulogic;
+    hclks       : in  std_ulogic;
+    ahbsi       : in  ahb_slv_in_type;
+    ahbso       : out ahb_slv_out_type;
+    ahbmi       : in  ahb_mst_in_type;
+    ahbmo       : out ahb_mst_out_type;
+    ahbso2      : in  ahb_slv_out_vector;
+    lcki        : in  ahb2ahb_ctrl_type;
+    lcko        : out ahb2ahb_ctrl_type;
+    ifctrl      : in  ahb2ahb_ifctrl_type := ahb2ahb_ifctrl_none
     );
   end component;
 
   component ahbbridge
   generic(
     memtech     : integer := 0;
-    ffact       : integer := 2;
+    ffact       : integer range 0 to 15 := 2;
     -- high-speed bus
     hsb_hsindex : integer := 0;
     hsb_hmindex : integer := 0;
     hsb_iclsize : integer range 4 to 8 := 8;
-    hsb_bank0     : integer range 0 to 1073741823 := 0;
-    hsb_bank1     : integer range 0 to 1073741823 := 0;
-    hsb_bank2     : integer range 0 to 1073741823 := 0;
-    hsb_bank3     : integer range 0 to 1073741823 := 0;
-    hsb_ioarea   : integer := 0;
+    hsb_bank0   : integer range 0 to 1073741823 := 0;
+    hsb_bank1   : integer range 0 to 1073741823 := 0;
+    hsb_bank2   : integer range 0 to 1073741823 := 0;
+    hsb_bank3   : integer range 0 to 1073741823 := 0;
+    hsb_ioarea  : integer := 0;
     -- low-speed bus
     lsb_hsindex : integer := 0;
     lsb_hmindex : integer := 0;
     lsb_rburst  : integer range 16 to 32 := 16;
     lsb_wburst  : integer range 2 to 32 :=  8;
-    lsb_bank0     : integer range 0 to 1073741823 := 0;
-    lsb_bank1     : integer range 0 to 1073741823 := 0;
-    lsb_bank2     : integer range 0 to 1073741823 := 0;
-    lsb_bank3     : integer range 0 to 1073741823 := 0;
-    lsb_ioarea    : integer := 0;
-    lckdac        : integer range 0 to 2 := 0);
+    lsb_bank0   : integer range 0 to 1073741823 := 0;
+    lsb_bank1   : integer range 0 to 1073741823 := 0;
+    lsb_bank2   : integer range 0 to 1073741823 := 0;
+    lsb_bank3   : integer range 0 to 1073741823 := 0;
+    lsb_ioarea  : integer := 0;
+    --
+    lckdac      : integer range 0 to 2 := 2;
+    maccsz      : integer range 32 to 256 := 32;
+    rdcomb      : integer range 0 to 2 := 0;
+    wrcomb      : integer range 0 to 2 := 0;
+    combmask    : integer := 16#ffff#;
+    allbrst     : integer range 0 to 2 := 0;
+    fcfs        : integer range 0 to NAHBMST := 0;
+    scantest    : integer range 0 to 1 := 0);
   port (
-    rstn    : in std_ulogic;
-    hsb_clk : in std_ulogic;
-    lsb_clk : in std_ulogic;
-    hsb_ahbsi : in  ahb_slv_in_type;
-    hsb_ahbso : out ahb_slv_out_type;
-    hsb_ahbsov: in  ahb_slv_out_vector;
-    hsb_ahbmi : in  ahb_mst_in_type;
-    hsb_ahbmo : out ahb_mst_out_type;
-    lsb_ahbsi : in  ahb_slv_in_type;
-    lsb_ahbso : out ahb_slv_out_type;
-    lsb_ahbsov: in  ahb_slv_out_vector;
-    lsb_ahbmi : in  ahb_mst_in_type;
-    lsb_ahbmo : out ahb_mst_out_type);
+    rstn        : in  std_ulogic;
+    hsb_clk     : in  std_ulogic;
+    lsb_clk     : in  std_ulogic;
+    hsb_ahbsi   : in  ahb_slv_in_type;
+    hsb_ahbso   : out ahb_slv_out_type;
+    hsb_ahbsov  : in  ahb_slv_out_vector;
+    hsb_ahbmi   : in  ahb_mst_in_type;
+    hsb_ahbmo   : out ahb_mst_out_type;
+    lsb_ahbsi   : in  ahb_slv_in_type;
+    lsb_ahbso   : out ahb_slv_out_type;
+    lsb_ahbsov  : in  ahb_slv_out_vector;
+    lsb_ahbmi   : in  ahb_mst_in_type;
+    lsb_ahbmo   : out ahb_mst_out_type);
   end component;
 
   function ahb2ahb_membar(memaddr : ahb_addr_type; prefetch, cache : std_ulogic;
@@ -533,7 +630,9 @@ end record;
     clk1        : integer := 20000;
     clk2        : integer := 15385;
     clk3        : integer := 0;
-    burstlen    : integer range 2 to 8 := 8
+    burstlen    : integer range 2 to 8 := 8;
+    ahbaccsz    : integer := 32;
+    asyncrst    : integer range 0 to 1 := 0
     );
   port (
     rst       : in std_logic;
@@ -544,7 +643,8 @@ end record;
     vgao      : out apbvga_out_type;
     ahbi      : in  ahb_mst_in_type;
     ahbo      : out ahb_mst_out_type;
-    clk_sel   : out std_logic_vector(1 downto 0)
+    clk_sel   : out std_logic_vector(1 downto 0);
+    arst      : in  std_ulogic := '1'
     );
 
   end component;
@@ -618,7 +718,7 @@ end record;
          pmask:            Integer := 16#FFF#;
          pirq:             Integer := 1;                 -- index of first irq
          dwidth:           Integer := 16;                -- data width
-         ptrwidth:         Integer range 4 to 16 := 12;  --  16 to  64k bytes
+         ptrwidth:         Integer range 16 to 16 := 16; --  16 to  64k bytes
                                                          -- 128 to 512k bits
          singleirq:        Integer range 0 to 1 := 0;    -- single irq output
          oepol:            Integer := 1);                -- output enable polarity
@@ -674,151 +774,6 @@ end record;
          ado:        out   Analog_Out_Type);
    end component;
 
-  component grclkgate
-  generic (
-    pindex   : integer := 0;
-    paddr    : integer := 0;
-    pmask    : integer := 16#fff#;
-    nbits    : integer := 16
-  );
-  port (
-    rst    : in  std_ulogic;
-    clk    : in  std_ulogic;
-    apbi   : in  apb_slv_in_type;
-    apbo   : out apb_slv_out_type;
-    clockdis  : out std_logic_vector(nbits-1 downto 0);
-    reset     : out std_logic_vector(nbits-1 downto 0)
-  );
-  end component;
-
-  -----------------------------------------------------------------------------
-  -- I2C types and components
-  -----------------------------------------------------------------------------
-  
-  type i2c_in_type is record
-      scl : std_ulogic;
-      sda : std_ulogic;
-  end record;
-
-  type i2c_out_type is record
-      scl    : std_ulogic;
-      scloen : std_ulogic;
-      sda    : std_ulogic;
-      sdaoen : std_ulogic;
-      enable : std_ulogic;
-  end record;
-    
-  -- AMBA wrapper for OC I2C-master
-  component i2cmst
-    generic (
-      pindex : integer;
-      paddr  : integer;
-      pmask  : integer;
-      pirq   : integer;
-      oepol  : integer range 0 to 1 := 0
-      );
-    port (
-      rstn   : in  std_ulogic;
-      clk    : in  std_ulogic;
-      apbi   : in  apb_slv_in_type;
-      apbo   : out apb_slv_out_type;
-      i2ci   : in  i2c_in_type;
-      i2co   : out i2c_out_type
-    );
-  end component;
-
-  component i2cmst_gen
-    generic (oepol  : integer range 0 to 1 := 0);
-    port (
-      rstn        : in  std_ulogic;
-      clk         : in  std_ulogic;
-      psel        : in  std_ulogic;
-      penable     : in  std_ulogic;
-      paddr       : in  std_logic_vector(31 downto 0);
-      pwrite      : in  std_ulogic;
-      pwdata      : in  std_logic_vector(31 downto 0);
-      prdata      : out std_logic_vector(31 downto 0);
-      irq         : out std_logic;
-      i2ci_scl    : in  std_ulogic;
-      i2ci_sda    : in  std_ulogic;
-      i2co_scl    : out std_ulogic;
-      i2co_scloen : out std_ulogic;
-      i2co_sda    : out std_ulogic;     
-      i2co_sdaoen : out std_ulogic;
-      i2co_enable : out std_ulogic
-      );
-  end component;
-
-  component i2cslv
-    generic (
-      pindex  : integer := 0;
-      paddr   : integer := 0;
-      pmask   : integer := 16#fff#;
-      pirq    : integer := 0;
-      hardaddr : integer range 0 to 1 := 0; 
-      tenbit   : integer range 0 to 1 := 0;
-      i2caddr  : integer range 0 to 1023 := 0;
-      oepol    : integer range 0 to 1 := 0
-      );
-    port (
-      rstn    : in  std_ulogic;
-      clk     : in  std_ulogic;
-      apbi    : in  apb_slv_in_type;
-      apbo    : out apb_slv_out_type;
-      i2ci    : in  i2c_in_type;
-      i2co    : out i2c_out_type
-      );
-  end component;
-  
-  -----------------------------------------------------------------------------
-  -- SPI controller
-  -----------------------------------------------------------------------------
-  type spi_in_type is record
-    miso    : std_ulogic;
-    mosi    : std_ulogic;
-    sck     : std_ulogic;
-    spisel  : std_ulogic;
-    astart  : std_ulogic;
-  end record;
-
-  type spi_out_type is record
-    miso     : std_ulogic;
-    misooen  : std_ulogic;
-    mosi     : std_ulogic;
-    mosioen  : std_ulogic;
-    sck      : std_ulogic;
-    sckoen   : std_ulogic;
-    ssn      : std_logic_vector(7 downto 0);  -- used by GE/OC SPI core
-    enable   : std_ulogic;
-    astart   : std_ulogic;
-  end record;
-
-  component spictrl
-    generic (
-      pindex   : integer := 0;
-      paddr    : integer := 0;
-      pmask    : integer := 16#fff#;
-      pirq     : integer := 0;
-      fdepth   : integer range 1 to 7  := 1;
-      slvselen : integer range 0 to 1  := 0;
-      slvselsz : integer range 1 to 32 := 1;
-      oepol    : integer range 0 to 1  := 0;
-      odmode   : integer range 0 to 1  := 0;
-      automode : integer range 0 to 1  := 0;
-      aslvsel  : integer range 0 to 1  := 0;
-      twen     : integer range 0 to 1  := 1
-      );
-    port (
-      rstn   : in std_ulogic;
-      clk    : in std_ulogic;
-      apbi   : in apb_slv_in_type;
-      apbo   : out apb_slv_out_type;
-      spii   : in  spi_in_type;
-      spio   : out spi_out_type;
-      slvsel : out std_logic_vector((slvselsz-1) downto 0)
-    );
-  end component;
-
   -----------------------------------------------------------------------------
   -- AMBA wrapper for System Monitor
   -----------------------------------------------------------------------------
@@ -830,7 +785,7 @@ end record;
      vn           : std_ulogic;
      vp           : std_ulogic;
   end record;
-  
+
   type grsysmon_out_type is record
      alm          : std_logic_vector(2 downto 0);
      ot           : std_ulogic;
@@ -841,7 +796,7 @@ end record;
 
   constant grsysmon_in_gnd : grsysmon_in_type :=
     ('0', '0', (others => '0'), (others => '0'), '0', '0');
-  
+
   component grsysmon
   generic (
     -- GRLIB generics
@@ -888,12 +843,12 @@ end record;
     ahbso   : out ahb_slv_out_type;
     sysmoni : in  grsysmon_in_type;
     sysmono : out grsysmon_out_type
-    );  
+    );
   end component;
 
   -----------------------------------------------------------------------------
   -- AMBA System ACE Interface Controller
-  -----------------------------------------------------------------------------  
+  -----------------------------------------------------------------------------
   type gracectrl_in_type is record
      di   : std_logic_vector(15 downto 0);
 --     brdy : std_ulogic;
@@ -908,10 +863,10 @@ end record;
      oen  : std_ulogic;
      doen : std_ulogic;                 -- Data output enable to pad
   end record;
-  
+
   constant gracectrl_none : gracectrl_out_type :=
     ((others => '1'), (others => '1'), '1', '1', '1', '1');
-  
+
   component gracectrl
   generic (
     hindex  : integer := 0;              -- AHB slave index
@@ -920,7 +875,8 @@ end record;
     hmask   : integer := 16#fff#;        -- Area mask
     split   : integer range 0 to 1 := 0; -- Enable AMBA SPLIT support
     swap    : integer range 0 to 1 := 0;
-    oepol   : integer range 0 to 1 := 0  -- Output enable polarity
+    oepol   : integer range 0 to 1 := 0; -- Output enable polarity
+    mode    : integer range 0 to 2 := 0  -- 16/8-bit mode
     );
   port (
     rstn    : in  std_ulogic;
@@ -935,28 +891,256 @@ end record;
 
   -----------------------------------------------------------------------------
   -- General purpose register
-  -----------------------------------------------------------------------------  
+  -----------------------------------------------------------------------------
   component grgpreg is
     generic (
         pindex   : integer := 0;
         paddr    : integer := 0;
         pmask    : integer := 16#fff#;
-        nbits    : integer := 16;
-        rstval   : integer := 0
+        nbits    : integer range 1 to 64 := 16;
+        rstval   : integer := 0;
+        rstval2  : integer := 0;
+        extrst   : integer := 0
         );
     port (
         rst    : in  std_ulogic;
         clk    : in  std_ulogic;
         apbi   : in  apb_slv_in_type;
         apbo   : out apb_slv_out_type;
-        gprego : out std_logic_vector(nbits-1 downto 0)
+        gprego : out std_logic_vector(nbits-1 downto 0);
+        resval : in std_logic_vector(nbits-1 downto 0) := (others => '0')
         );
   end component;
-  
+
+  component grgprbank is
+    generic (
+      pindex: integer := 0;
+      paddr : integer := 0;
+      pmask : integer := 16#fff#;
+      regbits: integer range 1 to 32 := 32;
+      nregs : integer  range 1 to 32 := 1;
+      rstval: integer := 0
+      );
+    port (
+      rst     : in  std_ulogic;
+      clk     : in  std_ulogic;
+      apbi    : in  apb_slv_in_type;
+      apbo    : out apb_slv_out_type;
+      rego    : out std_logic_vector(nregs*regbits-1 downto 0)
+      );
+  end component;
+
+  -----------------------------------------------------------------------------
+  -- EDAC Memory scrubber
+  -----------------------------------------------------------------------------
+
+  type memscrub_in_type is record
+    cerror  : std_logic_vector(0 to NAHBSLV-1);
+    clrcount: std_logic;
+    start   : std_logic;
+  end record;
+
+  component memscrub is
+    generic(
+      hmindex : integer := 0;
+      hsindex : integer := 0;
+      ioaddr  : integer := 0;
+      iomask  : integer := 16#FFF#;
+      hirq    : integer := 0;
+      nftslv  : integer range 1 to NAHBSLV - 1 := 3;
+      memwidth: integer := AHBDW;
+      -- Read block (cache line) burst size, must be even mult of 2
+      burstlen: integer := 2;
+      countlen: integer := 8
+      );
+    port(
+      rst   : in std_ulogic;
+      clk   : in std_ulogic;
+      ahbmi : in ahb_mst_in_type;
+      ahbmo : out ahb_mst_out_type;
+      ahbsi : in ahb_slv_in_type;
+      ahbso : out ahb_slv_out_type;
+      scrubi: in memscrub_in_type
+      );
+  end component;
+
+  type ahb_mst_iface_in_type is record
+    req     : std_ulogic;
+    write   : std_ulogic;
+    addr    : std_logic_vector(31 downto 0);
+    data    : std_logic_vector(31 downto 0);
+    size    : std_logic_vector(1 downto 0);
+  end record;
+
+  type ahb_mst_iface_out_type is record
+    grant   : std_ulogic;
+    ready   : std_ulogic;
+    error   : std_ulogic;
+    retry   : std_ulogic;
+    data    : std_logic_vector(31 downto 0);
+  end record;
+
+  component ahb_mst_iface is
+    generic(
+      hindex      : integer;
+      vendor      : integer;
+      device      : integer;
+      revision    : integer);
+    port(
+      rst         : in  std_ulogic;
+      clk         : in  std_ulogic;
+      ahbmi       : in  ahb_mst_in_type;
+      ahbmo       : out ahb_mst_out_type;
+      msti        : in  ahb_mst_iface_in_type;
+      msto        : out ahb_mst_iface_out_type
+    );
+  end component;
+
+  -----------------------------------------------------------------------------
+  -- Clock gate unit
+  -----------------------------------------------------------------------------
+  component grclkgate
+    generic (
+      tech     : integer := 0;
+      pindex   : integer := 0;
+      paddr    : integer := 0;
+      pmask    : integer := 16#fff#;
+      ncpu     : integer := 1;
+      nclks    : integer := 8;
+      emask    : integer := 0;
+      extemask : integer := 0;
+      scantest : integer := 0;
+      edges    : integer := 0;
+      noinv    : integer := 0; -- Do not use inverted clock on gate enable
+      fpush    : integer range 0 to 2 := 0;
+      ungateen : integer := 0);
+    port (
+      rst    : in  std_ulogic;
+      clkin  : in  std_ulogic;
+      pwd    : in  std_logic_vector(ncpu-1 downto 0);
+      fpen   : in  std_logic_vector(ncpu-1 downto 0);  -- Only used with shared FPU
+      apbi   : in  apb_slv_in_type;
+      apbo   : out apb_slv_out_type;
+      gclk   : out std_logic_vector(nclks-1 downto 0);
+      reset  : out std_logic_vector(nclks-1 downto 0);
+      clkahb : out std_ulogic;
+      clkcpu : out std_logic_vector(ncpu-1 downto 0);
+      enable : out std_logic_vector(nclks-1 downto 0);
+      clkfpu : out std_logic_vector((fpush/2)*(ncpu/2-1) downto 0); -- Only used with shared FPU
+      epwen  : in  std_logic_vector(nclks-1 downto 0);
+      ungate : in  std_ulogic);
+  end component;
+
+  component grclkgate2x
+    generic (
+      tech     : integer := 0;
+      pindex   : integer := 0;
+      paddr    : integer := 0;
+      pmask    : integer := 16#fff#;
+      ncpu     : integer := 1;
+      nclks    : integer := 8;
+      emask    : integer := 0;
+      extemask : integer := 0;
+      scantest : integer := 0;
+      edges    : integer := 0;
+      noinv    : integer := 0; -- Do not use inverted clock on gate enable
+      fpush    : integer range 0 to 2 := 0;
+      clk2xen  : integer := 0;  -- Enable double clocking
+      ungateen : integer := 0
+      );
+    port (
+      rst      : in  std_ulogic;
+      clkin    : in  std_ulogic;
+      clkin2x  : in std_ulogic;
+      pwd      : in  std_logic_vector(ncpu-1 downto 0);
+      fpen     : in  std_logic_vector(ncpu-1 downto 0);  -- Only used with shared FPU
+      apbi     : in  apb_slv_in_type;
+      apbo     : out apb_slv_out_type;
+      gclk     : out std_logic_vector(nclks-1 downto 0);
+      reset    : out std_logic_vector(nclks-1 downto 0);
+      clkahb   : out std_ulogic;
+      clkahb2x : out std_ulogic;
+      clkcpu   : out std_logic_vector(ncpu-1 downto 0);
+      enable   : out std_logic_vector(nclks-1 downto 0);
+      clkfpu   : out std_logic_vector((fpush/2)*(ncpu/2-1) downto 0); -- Only used with shared FPU
+      epwen    : in  std_logic_vector(nclks-1 downto 0);
+      ungate   : in  std_ulogic
+      );
+  end component;
+
+  -----------------------------------------------------------------------------
+  -- GRPULSE
+  -----------------------------------------------------------------------------
+  component grpulse
+    generic (
+      pindex:           Integer :=  0;
+      paddr:            Integer :=  0;
+      pmask:            Integer := 16#fff#;
+      pirq:             Integer :=  1;                -- Interrupt index
+      nchannel:         Integer := 24;                -- Number of channels
+      npulse:           Integer :=  8;                -- Channels with pulses
+      imask:            Integer := 16#ff0000#;        -- Interrupt mask
+      ioffset:          Integer :=  8;                -- Interrupt offset
+      invertpulse:      Integer :=  0;                -- Invert pulses
+      cntrwidth:        Integer := 10;                -- Width of counter
+      syncrst:          Integer :=  1;                -- Only synchronous reset
+      oepol:            Integer :=  1);               -- Output enable polarity
+    port (
+      rstn:       in    Std_ULogic;
+      clk:        in    Std_ULogic;
+      apbi:       in    apb_slv_in_type;
+      apbo:       out   apb_slv_out_type;
+      gpioi:      in    gpio_in_type;
+      gpioo:      out   gpio_out_type);
+  end component;
+
+  -----------------------------------------------------------------------------
+  -- GRTIMER
+  -----------------------------------------------------------------------------
+  component grtimer is
+    generic (
+      pindex:           Integer := 0;
+      paddr:            Integer := 0;
+      pmask:            Integer := 16#fff#;
+      pirq:             Integer := 1;
+      sepirq:           Integer := 1;                 -- separate interrupts
+      sbits:            Integer := 10;                -- scaler bits
+      ntimers:          Integer range 1 to 7 := 2;    -- number of timers
+      nbits:            Integer := 32;                -- timer bits
+      wdog:             Integer := 0;
+      glatch:           Integer := 0;
+      gextclk:          Integer := 0;
+      gset:             Integer := 0);
+    port (
+      rst:        in    Std_ULogic;
+      clk:        in    Std_ULogic;
+      apbi:       in    apb_slv_in_type;
+      apbo:       out   apb_slv_out_type;
+      gpti:       in    gptimer_in_type;
+      gpto:       out   gptimer_out_type);
+  end component;
+
+  -----------------------------------------------------------------------------
+  -- GRVERSION
+  -----------------------------------------------------------------------------
+  component grversion
+    generic (
+      pindex:           Integer :=  0;
+      paddr:            Integer :=  0;
+      pmask:            Integer := 16#fff#;
+      versionnr:        Integer := 16#0123#;
+      revisionnr:       Integer := 16#4567#);
+    port (
+      rstn:       in    Std_ULogic;
+      clk:        in    Std_ULogic;
+      apbi:       in    APB_Slv_In_Type;
+      apbo:       out   APB_Slv_Out_Type);
+  end component;
+
   -----------------------------------------------------------------------------
   -- Function declarations
   -----------------------------------------------------------------------------
-  
+
 --  function nandtree(v : std_logic_vector) return std_ulogic;
 
 end;

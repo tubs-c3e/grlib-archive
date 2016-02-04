@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,6 @@ library techmap;
 use techmap.gencomp.all;
 use gaisler.net.all;
 use gaisler.ethernet_mac.all;
-use gaisler.misc.all;
 library eth;
 use eth.ethcomp.all;
 
@@ -54,7 +53,7 @@ entity greth is
     enable_mdio    : integer range 0 to 1 := 0;
     fifosize       : integer range 4 to 512 := 8;
     nsync          : integer range 1 to 2 := 2;
-    edcl           : integer range 0 to 2 := 0;
+    edcl           : integer range 0 to 3 := 0;
     edclbufsz      : integer range 1 to 64 := 1;
     macaddrh       : integer := 16#00005E#;
     macaddrl       : integer := 16#000000#;
@@ -65,9 +64,13 @@ entity greth is
     oepol	   : integer range 0 to 1  := 0; 
     scanen	   : integer range 0 to 1  := 0;
     ft             : integer range 0 to 2  := 0;
+    edclft         : integer range 0 to 2  := 0;
     mdint_pol      : integer range 0 to 1  := 0;
     enable_mdint   : integer range 0 to 1  := 0;
-    multicast      : integer range 0 to 1  := 0);
+    multicast      : integer range 0 to 1  := 0;
+    ramdebug       : integer range 0 to 2  := 0;
+    mdiohold       : integer := 1;
+    maxsize        : integer := 1518);
   port(
     rst            : in  std_ulogic;
     clk            : in  std_ulogic;
@@ -111,6 +114,10 @@ architecture rtl of greth is
     0 => ahb_device_reg ( VENDOR_GAISLER, GAISLER_ETHMAC, 0, revision, 0),
     others => zero32);
 
+  constant ehconfig : ahb_config_type := (
+    0 => ahb_device_reg ( VENDOR_GAISLER, GAISLER_EDCLMST, 0, REVISION, 0),
+  others => zero32);
+
   signal irq          : std_ulogic;
   --rx ahb fifo
   signal rxrenable    : std_ulogic;
@@ -136,8 +143,13 @@ architecture rtl of greth is
   signal ewdata       : std_logic_vector(31 downto 0);
   signal erdata       : std_logic_vector(31 downto 0);
   signal lmdio_oe     : std_ulogic;
+  -- Fix for wider bus
+  signal hwdata       : std_logic_vector(31 downto 0);
+  signal hrdata       : std_logic_vector(31 downto 0);
 
 begin
+  
+  
   ethc0: grethc 
     generic map(
       ifg_gap        => ifg_gap,
@@ -159,7 +171,11 @@ begin
       scanen	     => scanen,
       mdint_pol      => mdint_pol,
       enable_mdint   => enable_mdint,
-      multicast      => multicast)
+      multicast      => multicast,
+      edclsepahbg    => 0,
+      ramdebug       => ramdebug,
+      mdiohold       => mdiohold, 
+      maxsize        => maxsize)
     port map(
       rst            => rst,
       clk            => clk,
@@ -167,7 +183,7 @@ begin
       hgrant         => ahbmi.hgrant(hindex),
       hready         => ahbmi.hready,
       hresp          => ahbmi.hresp,
-      hrdata         => ahbmi.hrdata,
+      hrdata         => hrdata,
       --ahb mst out
       hbusreq        => ahbmo.hbusreq,
       hlock          => ahbmo.hlock,
@@ -177,7 +193,22 @@ begin
       hsize          => ahbmo.hsize,
       hburst         => ahbmo.hburst,
       hprot          => ahbmo.hprot,
-      hwdata         => ahbmo.hwdata,
+      hwdata         => hwdata,
+      --edcl ahb mst in   
+      ehgrant        => ahbmi.hgrant(hindex),
+      ehready        => ahbmi.hready,
+      ehresp         => ahbmi.hresp,
+      ehrdata        => hrdata,
+      --edcl ahb mst out  
+      ehbusreq       => open,
+      ehlock         => open,
+      ehtrans        => open,
+      ehaddr         => open,
+      ehwrite        => open,
+      ehsize         => open,
+      ehburst        => open,
+      ehprot         => open,
+      ehwdata        => open,
       --apb slv in 
       psel	     => apbi.psel(pindex),
       penable	     => apbi.penable,
@@ -234,20 +265,30 @@ begin
       --scantest     
       testrst        => ahbmi.testrst,
       testen         => ahbmi.testen,
-      edcladdr       => ethi.edcladdr);
+      testoen        => ahbmi.testoen,
+      edcladdr       => ethi.edcladdr,
+      edclsepahb     => ethi.edclsepahb,
+      edcldisable    => ethi.edcldisable,
+      speed          => etho.speed);
 
+  etho.txd(7 downto 4) <= "0000";
   etho.mdio_oe <= ahbmi.testoen when (scanen = 1) and (ahbmi.testen = '1')
 	else lmdio_oe;
+  etho.gbit <= '0';
+
   irqdrv : process(irq)
   begin
     apbo.pirq       <= (others => '0');
     apbo.pirq(pirq) <= irq;
   end process;
 
+  hrdata <= ahbreadword(ahbmi.hrdata);
+  
+  ahbmo.hwdata <= ahbdrivedata(hwdata);
   ahbmo.hconfig <= hconfig;
   ahbmo.hindex  <= hindex;
   ahbmo.hirq    <= (others => '0');
-
+  
   apbo.pconfig  <= pconfig;
   apbo.pindex   <= pindex;
 -------------------------------------------------------------------------------
@@ -278,11 +319,20 @@ begin
 -------------------------------------------------------------------------------
 -- EDCL buffer ram ------------------------------------------------------------
 -------------------------------------------------------------------------------
-  edclram : if (edcl /= 0) generate
+  edclramnft : if (edcl /= 0) and (edclft = 0) generate
     r0 : syncram_2p generic map (memtech, eabits, 16) port map(
       clk, erenable, eraddress(eabits-1 downto 0), erdata(31 downto 16), clk,
       ewritem, ewaddressm(eabits-1 downto 0), ewdata(31 downto 16)); 
     r1 : syncram_2p generic map (memtech, eabits, 16) port map(
+      clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
+      ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0)); 
+  end generate;
+
+  edclramft1 : if (edcl /= 0) and (edclft /= 0) generate
+    r0 : syncram_2p generic map (memtech, eabits, 16, 0, 0, ft) port map(
+      clk, erenable, eraddress(eabits-1 downto 0), erdata(31 downto 16), clk,
+      ewritem, ewaddressm(eabits-1 downto 0), ewdata(31 downto 16)); 
+    r1 : syncram_2p generic map (memtech, eabits, 16, 0, 0, ft) port map(
       clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
       ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0)); 
   end generate;

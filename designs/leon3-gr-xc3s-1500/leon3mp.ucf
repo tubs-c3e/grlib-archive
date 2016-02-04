@@ -20,14 +20,18 @@ OFFSET = in : 8.000 : BEFORE usb_clkout ;
 
 NET "clkm" 		TNM_NET = "clkm";
 
+
+##################################################################
 # Enable these is you have enabled the SVGA clock generator
 
-#NET video_clk period = 15.000 ;
-#NET "clk50" 		TNM_NET = "clk50";
-#NET "video_clk" 	TNM_NET = "video_clk";
-#TIMESPEC "TS_clkm_vidclk" = FROM "clkm" TO "video_clk" TIG;
-#TIMESPEC "TS_clk50_vidclk" = FROM "clk50" TO "video_clk" TIG;
-#TIMESPEC "TS_vidclk_clkm" = FROM "video_clk" TO "clkm" TIG;
+NET vid_clock period = 15.000 ;
+NET "clk50" 		TNM_NET = "clk50";
+NET "video_clk" 	TNM_NET = "video_clk";
+TIMESPEC "TS_clkm_vidclk" = FROM "clkm" TO "video_clk" TIG;
+TIMESPEC "TS_clk50_vidclk" = FROM "clk50" TO "video_clk" TIG;
+TIMESPEC "TS_vidclk_clkm" = FROM "video_clk" TO "clkm" TIG;
+
+##################################################################
 
 INST "clkgen0_xc3s_v_dll0" LOC = DCM_X1Y0;
 INST "clkgen0_xc3s_v_sd0_dll1" LOC = DCM_X0Y0;

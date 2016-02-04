@@ -1,5 +1,6 @@
 #include "testmod.h"
 #include "../greth/greth_api.h"
+#include <stdlib.h>
 
 #define SRC_MAC0  0xDE
 #define SRC_MAC1  0xAD
@@ -145,14 +146,15 @@ static void build_ip(
         buf[35] = 0;
         buf[36] = 0;
         buf[37] = 0;
-        crc = 0x8511;
+        crc = 0x8D11;
         crc = crc + (iplen & 0xFFFF);
-        crc = crc + (source_ip >> 16) & 0xFFFF;
-        crc = crc + source_ip & 0xFFFF;
-        crc = crc + (dest_ip >> 16) & 0xFFFF;
-        crc = crc + dest_ip & 0xFFFF;
+        crc = crc + ((source_ip >> 16) & 0xFFFF);
+        crc = crc + (source_ip & 0xFFFF);
+        crc = crc + ((dest_ip >> 16) & 0xFFFF);
+        crc = crc + (dest_ip & 0xFFFF);
         crc = (crc & 0xFFFF) + ((crc >> 16) & 0xFFFF);
         crc = (crc & 0xFFFF) + ((crc >> 16) & 0xFFFF);
+        crc = ~crc;
         buf[24] = (crc >> 8) & 0xFF;
         buf[25] = crc & 0xFF;
         buf[38] = (udplen >> 8) & 0xFF;
@@ -272,10 +274,10 @@ int greth_test(int apbaddr)
         if (greth.edcl) {
                 /* read ip address */ 
                 ipaddr = load((int)&greth.regs->edclip);
-                
+
                 buf = malloc(256);
                 /* send arp packet to acquire edcl mac address */
-                build_arp(0xDEADBE, 0xEF0020, 0xC0A80016, ipaddr, buf, len);
+                build_arp(0xDEADBE, 0xEF0020, 0xDDEEFFCC, ipaddr, buf, len);
                 
                 while(!greth_rx(rxbuf, &greth));
                 while(!greth_tx(*len, buf, &greth));
@@ -286,7 +288,7 @@ int greth_test(int apbaddr)
                 
                 /* send zero length read to acquire sequence number */
                 build_ip(emac_addr_msb, emac_addr_lsb, 0xDEADBE, 0xEF0020, ipaddr,
-                         0xC0A80016, 0, 0, (unsigned int)wrarea, 0, (unsigned char *)0, buf, len);
+                         ipaddr, 0, 0, (unsigned int)wrarea, 0, (unsigned char *)0, buf, len);
         
                 while(!greth_rx(rxbuf, &greth));
                 while(!greth_tx(*len, buf, &greth));
@@ -302,7 +304,7 @@ int greth_test(int apbaddr)
                 
                 /* write 72 bytes to memory */
                 build_ip(emac_addr_msb, emac_addr_lsb, 0xDEADBE, 0xEF0020, ipaddr,
-                         0xC0A80016, 1, seq, (unsigned int)wrarea, 72, txbuf, buf, len);
+                         ipaddr, 1, seq, (unsigned int)wrarea, 72, txbuf, buf, len);
 
                 while(!greth_rx(rxbuf, &greth));
                 while(!greth_tx(*len, buf, &greth));
@@ -316,7 +318,7 @@ int greth_test(int apbaddr)
                 
                 /* read back 72 bytes */
                 build_ip(emac_addr_msb, emac_addr_lsb, 0xDEADBE, 0xEF0020, ipaddr,
-                         0xC0A80016, 0, seq, (unsigned int)wrarea, 72, (unsigned char *)0, buf, len);
+                         ipaddr, 0, seq, (unsigned int)wrarea, 72, (unsigned char *)0, buf, len);
                 
                 while(!greth_rx(rxbuf, &greth));
                 while(!greth_tx(*len, buf, &greth));

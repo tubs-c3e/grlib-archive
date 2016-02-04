@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ use ieee.std_logic_1164.all;
 package spwcomp is
   component grspwc2 is
     generic(
-      rmap         : integer range 0 to 1  := 0;
+      rmap         : integer range 0 to 2  := 0;
       rmapcrc      : integer range 0 to 1  := 0;
       fifosize1    : integer range 4 to 32 := 32;
       fifosize2    : integer range 16 to 64 := 64;
@@ -33,22 +33,25 @@ package spwcomp is
       ports        : integer range 1 to 2 := 1;
       dmachan      : integer range 1 to 4 := 1;
       tech         : integer;
-      input_type   : integer range 0 to 3 := 0;
+      input_type   : integer range 0 to 4 := 0;
       output_type  : integer range 0 to 2 := 0;
-      rxtx_sameclk : integer range 0 to 1 := 0);
+      rxtx_sameclk : integer range 0 to 1 := 0;
+      nodeaddr     : integer range 0 to 255 := 254;
+      destkey      : integer range 0 to 255 := 0);
     port(
       rst          : in  std_ulogic;
       clk          : in  std_ulogic;
-      rxclk        : in  std_logic_vector(1 downto 0);
+      rxclk0       : in  std_ulogic;
+      rxclk1       : in  std_ulogic;
       txclk        : in  std_ulogic;
       txclkn       : in  std_ulogic;
       --ahb mst in
       hgrant       : in  std_ulogic;
-      hready       : in  std_ulogic;   
+      hready       : in  std_ulogic;
       hresp        : in  std_logic_vector(1 downto 0);
-      hrdata       : in  std_logic_vector(31 downto 0); 
+      hrdata       : in  std_logic_vector(31 downto 0);
       --ahb mst out
-      hbusreq      : out  std_ulogic;        
+      hbusreq      : out  std_ulogic;
       hlock        : out  std_ulogic;
       htrans       : out  std_logic_vector(1 downto 0);
       haddr        : out  std_logic_vector(31 downto 0);
@@ -57,14 +60,14 @@ package spwcomp is
       hburst       : out  std_logic_vector(2 downto 0);
       hprot        : out  std_logic_vector(3 downto 0);
       hwdata       : out  std_logic_vector(31 downto 0);
-      --apb slv in 
-      psel	 : in   std_ulogic;
-      penable	 : in   std_ulogic;
-      paddr	 : in   std_logic_vector(31 downto 0);
-      pwrite	 : in   std_ulogic;
-      pwdata	 : in   std_logic_vector(31 downto 0);
+      --apb slv in
+      psel         : in   std_ulogic;
+      penable      : in   std_ulogic;
+      paddr        : in   std_logic_vector(31 downto 0);
+      pwrite       : in   std_ulogic;
+      pwdata       : in   std_logic_vector(31 downto 0);
       --apb slv out
-      prdata	 : out  std_logic_vector(31 downto 0);
+      prdata       : out  std_logic_vector(31 downto 0);
       --spw in
       d            : in   std_logic_vector(3 downto 0);
       dv           : in   std_logic_vector(3 downto 0);
@@ -74,29 +77,33 @@ package spwcomp is
       so           : out  std_logic_vector(3 downto 0);
       --time iface
       tickin       : in   std_ulogic;
+      tickinraw    : in   std_ulogic;
+      timein       : in   std_logic_vector(7 downto 0);
+      tickindone   : out  std_ulogic;
       tickout      : out  std_ulogic;
+      tickoutraw   : out  std_ulogic;
+      timeout      : out  std_logic_vector(7 downto 0);
       --irq
       irq          : out  std_logic;
-      --misc     
+      --misc
       clkdiv10     : in   std_logic_vector(7 downto 0);
-      dcrstval     : in   std_logic_vector(9 downto 0);
-      timerrstval  : in   std_logic_vector(11 downto 0);
       --rmapen
       rmapen       : in   std_ulogic;
-      --rx ahb fifo
+      rmapnodeaddr : in   std_logic_vector(7 downto 0);
+    --rx ahb fifo
       rxrenable    : out  std_ulogic;
       rxraddress   : out  std_logic_vector(4 downto 0);
       rxwrite      : out  std_ulogic;
       rxwdata      : out  std_logic_vector(31 downto 0);
       rxwaddress   : out  std_logic_vector(4 downto 0);
-      rxrdata      : in   std_logic_vector(31 downto 0);    
+      rxrdata      : in   std_logic_vector(31 downto 0);
       --tx ahb fifo
       txrenable    : out  std_ulogic;
       txraddress   : out  std_logic_vector(4 downto 0);
       txwrite      : out  std_ulogic;
       txwdata      : out  std_logic_vector(31 downto 0);
       txwaddress   : out  std_logic_vector(4 downto 0);
-      txrdata      : in   std_logic_vector(31 downto 0);    
+      txrdata      : in   std_logic_vector(31 downto 0);
       --nchar fifo
       ncrenable    : out  std_ulogic;
       ncraddress   : out  std_logic_vector(5 downto 0);
@@ -112,18 +119,21 @@ package spwcomp is
       rmwaddress   : out  std_logic_vector(7 downto 0);
       rmrdata      : in   std_logic_vector(7 downto 0);
       linkdis      : out  std_ulogic;
-      testclk      : in   std_ulogic := '0';
       testrst      : in   std_ulogic := '0';
-      testen       : in   std_ulogic := '0'
+      testen       : in   std_ulogic := '0';
+      --parallel rx data out
+      rxdav        : out  std_ulogic;
+      rxdataout    : out  std_logic_vector(8 downto 0);
+      loopback     : out  std_ulogic
     );
   end component;
-   
+
   component grspwc is
     generic(
       sysfreq      : integer := 40000;
       usegen       : integer range 0 to 1  := 1;
-      nsync        : integer range 1 to 2  := 1; 
-      rmap         : integer range 0 to 1  := 0;
+      nsync        : integer range 1 to 2  := 1;
+      rmap         : integer range 0 to 2  := 0;
       rmapcrc      : integer range 0 to 1  := 0;
       fifosize1    : integer range 4 to 32 := 32;
       fifosize2    : integer range 16 to 64 := 64;
@@ -131,7 +141,9 @@ package spwcomp is
       rmapbufs     : integer range 2 to 8 := 4;
       scantest     : integer range 0 to 1 := 0;
       ports        : integer range 1 to 2 := 1;
-      tech         : integer 
+      tech         : integer;
+      nodeaddr     : integer range 0 to 255 := 254;
+      destkey      : integer range 0 to 255 := 0
     );
     port(
       rst          : in  std_ulogic;
@@ -139,11 +151,11 @@ package spwcomp is
       txclk        : in  std_ulogic;
       --ahb mst in
       hgrant       : in  std_ulogic;
-      hready       : in  std_ulogic;   
+      hready       : in  std_ulogic;
       hresp        : in  std_logic_vector(1 downto 0);
-      hrdata       : in  std_logic_vector(31 downto 0); 
+      hrdata       : in  std_logic_vector(31 downto 0);
       --ahb mst out
-      hbusreq      : out  std_ulogic;        
+      hbusreq      : out  std_ulogic;
       hlock        : out  std_ulogic;
       htrans       : out  std_logic_vector(1 downto 0);
       haddr        : out  std_logic_vector(31 downto 0);
@@ -152,7 +164,7 @@ package spwcomp is
       hburst       : out  std_logic_vector(2 downto 0);
       hprot        : out  std_logic_vector(3 downto 0);
       hwdata       : out  std_logic_vector(31 downto 0);
-      --apb slv in 
+      --apb slv in
       psel	 : in   std_ulogic;
       penable	 : in   std_ulogic;
       paddr	 : in   std_logic_vector(31 downto 0);
@@ -171,12 +183,13 @@ package spwcomp is
       tickout      : out  std_ulogic;
       --irq
       irq          : out  std_logic;
-      --misc     
+      --misc
       clkdiv10     : in   std_logic_vector(7 downto 0);
       dcrstval     : in   std_logic_vector(9 downto 0);
       timerrstval  : in   std_logic_vector(11 downto 0);
       --rmapen
       rmapen       : in   std_ulogic;
+      rmapnodeaddr : in   std_logic_vector(7 downto 0);
       --clk bufs
       rxclki       : in   std_logic_vector(1 downto 0);
       nrxclki      : in   std_logic_vector(1 downto 0);
@@ -187,14 +200,14 @@ package spwcomp is
       rxwrite      : out  std_ulogic;
       rxwdata      : out  std_logic_vector(31 downto 0);
       rxwaddress   : out  std_logic_vector(4 downto 0);
-      rxrdata      : in   std_logic_vector(31 downto 0);    
+      rxrdata      : in   std_logic_vector(31 downto 0);
       --tx ahb fifo
       txrenable    : out  std_ulogic;
       txraddress   : out  std_logic_vector(4 downto 0);
       txwrite      : out  std_ulogic;
       txwdata      : out  std_logic_vector(31 downto 0);
       txwaddress   : out  std_logic_vector(4 downto 0);
-      txrdata      : in   std_logic_vector(31 downto 0);    
+      txrdata      : in   std_logic_vector(31 downto 0);
       --nchar fifo
       ncrenable    : out  std_ulogic;
       ncraddress   : out  std_logic_vector(5 downto 0);
@@ -212,7 +225,8 @@ package spwcomp is
       linkdis      : out  std_ulogic;
       testclk      : in   std_ulogic := '0';
       testrst      : in   std_ulogic := '0';
-      testen       : in   std_ulogic := '0'
+      testen       : in   std_ulogic := '0';
+      rmapact      : out  std_ulogic
     );
   end component;
 
@@ -223,11 +237,11 @@ package spwcomp is
       txclk        : in  std_ulogic;
       --ahb mst in
       hgrant       : in  std_ulogic;
-      hready       : in  std_ulogic;   
+      hready       : in  std_ulogic;
       hresp        : in  std_logic_vector(1 downto 0);
-      hrdata       : in  std_logic_vector(31 downto 0); 
+      hrdata       : in  std_logic_vector(31 downto 0);
       --ahb mst out
-      hbusreq      : out  std_ulogic;        
+      hbusreq      : out  std_ulogic;
       hlock        : out  std_ulogic;
       htrans       : out  std_logic_vector(1 downto 0);
       haddr        : out  std_logic_vector(31 downto 0);
@@ -236,7 +250,7 @@ package spwcomp is
       hburst       : out  std_logic_vector(2 downto 0);
       hprot        : out  std_logic_vector(3 downto 0);
       hwdata       : out  std_logic_vector(31 downto 0);
-      --apb slv in 
+      --apb slv in
       psel	   : in   std_ulogic;
       penable	   : in   std_ulogic;
       paddr	   : in   std_logic_vector(31 downto 0);
@@ -255,12 +269,13 @@ package spwcomp is
       tickout      : out  std_ulogic;
       --irq
       irq          : out  std_logic;
-      --misc            
+      --misc
       clkdiv10     : in   std_logic_vector(7 downto 0);
       dcrstval     : in   std_logic_vector(9 downto 0);
       timerrstval  : in   std_logic_vector(11 downto 0);
       --rmapen
       rmapen       : in   std_ulogic;
+      rmapnodeaddr : in   std_logic_vector(7 downto 0);
       --clk bufs
       rxclki       : in   std_logic_vector(1 downto 0);
       nrxclki      : in   std_logic_vector(1 downto 0);
@@ -271,14 +286,14 @@ package spwcomp is
       rxwrite      : out  std_ulogic;
       rxwdata      : out  std_logic_vector(31 downto 0);
       rxwaddress   : out  std_logic_vector(4 downto 0);
-      rxrdata      : in   std_logic_vector(31 downto 0);    
+      rxrdata      : in   std_logic_vector(31 downto 0);
       --tx ahb fifo
       txrenable    : out  std_ulogic;
       txraddress   : out  std_logic_vector(4 downto 0);
       txwrite      : out  std_ulogic;
       txwdata      : out  std_logic_vector(31 downto 0);
       txwaddress   : out  std_logic_vector(4 downto 0);
-      txrdata      : in   std_logic_vector(31 downto 0);    
+      txrdata      : in   std_logic_vector(31 downto 0);
       --nchar fifo
       ncrenable    : out  std_ulogic;
       ncraddress   : out  std_logic_vector(5 downto 0);
@@ -307,11 +322,11 @@ package spwcomp is
       txclk        : in  std_ulogic;
       --ahb mst in
       hgrant       : in  std_ulogic;
-      hready       : in  std_ulogic;   
+      hready       : in  std_ulogic;
       hresp        : in  std_logic_vector(1 downto 0);
-      hrdata       : in  std_logic_vector(31 downto 0); 
+      hrdata       : in  std_logic_vector(31 downto 0);
       --ahb mst out
-      hbusreq      : out  std_ulogic;        
+      hbusreq      : out  std_ulogic;
       hlock        : out  std_ulogic;
       htrans       : out  std_logic_vector(1 downto 0);
       haddr        : out  std_logic_vector(31 downto 0);
@@ -320,7 +335,7 @@ package spwcomp is
       hburst       : out  std_logic_vector(2 downto 0);
       hprot        : out  std_logic_vector(3 downto 0);
       hwdata       : out  std_logic_vector(31 downto 0);
-      --apb slv in 
+      --apb slv in
       psel	   : in   std_ulogic;
       penable	   : in   std_ulogic;
       paddr	   : in   std_logic_vector(31 downto 0);
@@ -339,12 +354,13 @@ package spwcomp is
       tickout      : out  std_ulogic;
       --irq
       irq          : out  std_logic;
-      --misc            
+      --misc
       clkdiv10     : in   std_logic_vector(7 downto 0);
       dcrstval     : in   std_logic_vector(9 downto 0);
       timerrstval  : in   std_logic_vector(11 downto 0);
       --rmapen
       rmapen       : in   std_ulogic;
+      rmapnodeaddr : in   std_logic_vector(7 downto 0);
       --clk bufs
       rxclki       : in   std_logic_vector(1 downto 0);
       nrxclki      : in   std_logic_vector(1 downto 0);
@@ -355,14 +371,14 @@ package spwcomp is
       rxwrite      : out  std_ulogic;
       rxwdata      : out  std_logic_vector(31 downto 0);
       rxwaddress   : out  std_logic_vector(4 downto 0);
-      rxrdata      : in   std_logic_vector(31 downto 0);    
+      rxrdata      : in   std_logic_vector(31 downto 0);
       --tx ahb fifo
       txrenable    : out  std_ulogic;
       txraddress   : out  std_logic_vector(4 downto 0);
       txwrite      : out  std_ulogic;
       txwdata      : out  std_logic_vector(31 downto 0);
       txwaddress   : out  std_logic_vector(4 downto 0);
-      txrdata      : in   std_logic_vector(31 downto 0);    
+      txrdata      : in   std_logic_vector(31 downto 0);
       --nchar fifo
       ncrenable    : out  std_ulogic;
       ncraddress   : out  std_logic_vector(5 downto 0);
@@ -389,8 +405,8 @@ package spwcomp is
       tech         : integer := 0;
       sysfreq      : integer := 10000;
       usegen       : integer range 0 to 1  := 1;
-      nsync        : integer range 1 to 2  := 1; 
-      rmap         : integer range 0 to 1  := 0;
+      nsync        : integer range 1 to 2  := 1;
+      rmap         : integer range 0 to 2  := 0;
       rmapcrc      : integer range 0 to 1  := 0;
       fifosize1    : integer range 4 to 32 := 32;
       fifosize2    : integer range 16 to 64 := 64;
@@ -401,7 +417,9 @@ package spwcomp is
       scantest     : integer range 0 to 1 := 0;
       techfifo     : integer range 0 to 1 := 1;
       ports        : integer range 1 to 2 := 1;
-      memtech      : integer := 0
+      memtech      : integer := 0;
+      nodeaddr     : integer range 0 to 255 := 254;
+      destkey      : integer range 0 to 255 := 0
     );
     port(
       rst          : in  std_ulogic;
@@ -409,11 +427,11 @@ package spwcomp is
       txclk        : in  std_ulogic;
       --ahb mst in
       hgrant       : in  std_ulogic;
-      hready       : in  std_ulogic;   
+      hready       : in  std_ulogic;
       hresp        : in  std_logic_vector(1 downto 0);
-      hrdata       : in  std_logic_vector(31 downto 0); 
+      hrdata       : in  std_logic_vector(31 downto 0);
       --ahb mst out
-      hbusreq      : out  std_ulogic;        
+      hbusreq      : out  std_ulogic;
       hlock        : out  std_ulogic;
       htrans       : out  std_logic_vector(1 downto 0);
       haddr        : out  std_logic_vector(31 downto 0);
@@ -422,7 +440,7 @@ package spwcomp is
       hburst       : out  std_logic_vector(2 downto 0);
       hprot        : out  std_logic_vector(3 downto 0);
       hwdata       : out  std_logic_vector(31 downto 0);
-      --apb slv in 
+      --apb slv in
       psel	 : in   std_ulogic;
       penable	 : in   std_ulogic;
       paddr	 : in   std_logic_vector(31 downto 0);
@@ -441,17 +459,248 @@ package spwcomp is
       tickout      : out  std_ulogic;
       --irq
       irq          : out  std_logic;
-      --misc     
+      --misc
       clkdiv10     : in   std_logic_vector(7 downto 0);
       dcrstval     : in   std_logic_vector(9 downto 0);
       timerrstval  : in   std_logic_vector(11 downto 0);
       --rmapen
       rmapen       : in   std_ulogic;
+      rmapnodeaddr : in   std_logic_vector(7 downto 0);
       linkdis      : out  std_ulogic;
       testclk      : in   std_ulogic := '0';
       testrst      : in   std_ulogic := '0';
       testen       : in   std_ulogic := '0'
       );
   end component;
+
+  component grspw_codec_core is
+  generic(
+    ports        : integer range 1 to 2 := 1;
+    input_type   : integer range 0 to 4 := 0;
+    output_type  : integer range 0 to 2 := 0;
+    rxtx_sameclk : integer range 0 to 1 := 0;
+    fifosize     : integer range 16 to 2048 := 64;
+    tech         : integer;
+    scantest     : integer range 0 to 1 := 0
+    );
+  port(
+    rst          : in  std_ulogic;
+    clk          : in  std_ulogic;
+    rxclk0       : in  std_ulogic;
+    rxclk1       : in  std_ulogic;
+    txclk        : in  std_ulogic;
+    txclkn       : in  std_ulogic;
+    testen       : in  std_ulogic;
+    testrst      : in  std_ulogic;
+    --spw in
+    d            : in  std_logic_vector(3 downto 0);
+    dv           : in  std_logic_vector(3 downto 0);
+    dconnect     : in  std_logic_vector(3 downto 0);
+    --spw out
+    do           : out std_logic_vector(3 downto 0);
+    so           : out std_logic_vector(3 downto 0);
+    --link fsm
+    linkdisabled : in  std_ulogic;
+    linkstart    : in  std_ulogic;
+    autostart    : in  std_ulogic;
+    portsel      : in  std_ulogic;
+    noportforce  : in  std_ulogic;
+    rdivisor     : in  std_logic_vector(7 downto 0);
+    idivisor     : in  std_logic_vector(7 downto 0);
+    state        : out std_logic_vector(2 downto 0);
+    actport      : out std_ulogic;
+    dconnecterr  : out std_ulogic;
+    crederr      : out std_ulogic;
+    escerr       : out std_ulogic;
+    parerr       : out std_ulogic;
+    --rx fifo signals
+    rxrenable    : out std_ulogic;
+    rxraddress   : out std_logic_vector(10 downto 0);
+    rxwrite      : out std_ulogic;
+    rxwdata      : out std_logic_vector(9 downto 0);
+    rxwaddress   : out std_logic_vector(10 downto 0);
+    rxrdata      : in  std_logic_vector(9 downto 0);
+    rxaccess     : out std_ulogic;
+    --rx iface
+    rxicharav    : out std_ulogic;
+    rxicharcnt   : out std_logic_vector(11 downto 0);
+    rxichar      : out std_logic_vector(8 downto 0);
+    rxiread      : in  std_ulogic;
+    rxififorst   : in  std_ulogic;
+    --tx fifo signals
+    txrenable    : out std_ulogic;
+    txraddress   : out std_logic_vector(10 downto 0);
+    txwrite      : out std_ulogic;
+    txwdata      : out std_logic_vector(8 downto 0);
+    txwaddress   : out std_logic_vector(10 downto 0);
+    txrdata      : in  std_logic_vector(8 downto 0);
+    txaccess     : out std_ulogic;
+    --tx iface
+    txicharcnt   : out std_logic_vector(11 downto 0);
+    txifull      : out std_ulogic;
+    txiempty     : out std_ulogic;
+    txiwrite     : in  std_ulogic;
+    txichar      : in  std_logic_vector(8 downto 0);
+    txififorst   : in  std_ulogic;
+    txififorstact: out std_ulogic;
+    --time iface
+    tickin       : in  std_ulogic;
+    timein       : in  std_logic_vector(7 downto 0);
+    tickin_done  : out std_ulogic;
+    tickout      : out std_ulogic;
+    timeout      : out std_logic_vector(7 downto 0)
+  );
+  end component;
+
+  component grspw2_gen is
+    generic(
+      rmap         : integer range 0 to 2  := 0;
+      rmapcrc      : integer range 0 to 1  := 0;
+      fifosize1    : integer range 4 to 32 := 32;
+      fifosize2    : integer range 16 to 64 := 64;
+      rxunaligned  : integer range 0 to 1 := 0;
+      rmapbufs     : integer range 2 to 8 := 4;
+      scantest     : integer range 0 to 1 := 0;
+      ports        : integer range 1 to 2 := 1;
+      dmachan      : integer range 1 to 4 := 1;
+      tech         : integer;
+      input_type   : integer range 0 to 4 := 0;
+      output_type  : integer range 0 to 2 := 0;
+      rxtx_sameclk : integer range 0 to 1 := 0;
+      ft           : integer range 0 to 2 := 0;
+      techfifo     : integer range 0 to 1 := 1;
+      memtech      : integer := 0;
+      nodeaddr     : integer range 0 to 255 := 254;
+      destkey      : integer range 0 to 255 := 0);
+    port(
+      rst          : in  std_ulogic;
+      clk          : in  std_ulogic;
+      rxclk0       : in  std_ulogic;
+      rxclk1       : in  std_ulogic;
+      txclk        : in  std_ulogic;
+      txclkn       : in  std_ulogic;
+      --ahb mst in
+      hgrant       : in  std_ulogic;
+      hready       : in  std_ulogic;
+      hresp        : in  std_logic_vector(1 downto 0);
+      hrdata       : in  std_logic_vector(31 downto 0);
+      --ahb mst out
+      hbusreq      : out  std_ulogic;
+      hlock        : out  std_ulogic;
+      htrans       : out  std_logic_vector(1 downto 0);
+      haddr        : out  std_logic_vector(31 downto 0);
+      hwrite       : out  std_ulogic;
+      hsize        : out  std_logic_vector(2 downto 0);
+      hburst       : out  std_logic_vector(2 downto 0);
+      hprot        : out  std_logic_vector(3 downto 0);
+      hwdata       : out  std_logic_vector(31 downto 0);
+      --apb slv in
+      psel	 : in   std_ulogic;
+      penable	 : in   std_ulogic;
+      paddr	 : in   std_logic_vector(31 downto 0);
+      pwrite	 : in   std_ulogic;
+      pwdata	 : in   std_logic_vector(31 downto 0);
+      --apb slv out
+      prdata	 : out  std_logic_vector(31 downto 0);
+      --spw in
+      d            : in   std_logic_vector(3 downto 0);
+      dv           : in   std_logic_vector(3 downto 0);
+      dconnect     : in   std_logic_vector(3 downto 0);
+      --spw out
+      do           : out  std_logic_vector(3 downto 0);
+      so           : out  std_logic_vector(3 downto 0);
+      --time iface
+      tickin       : in   std_ulogic;
+      tickinraw    : in   std_ulogic;
+      timein       : in   std_logic_vector(7 downto 0);
+      tickindone   : out  std_ulogic;
+      tickout      : out  std_ulogic;
+      tickoutraw   : out  std_ulogic;
+      timeout      : out  std_logic_vector(7 downto 0);
+      --irq
+      irq          : out  std_logic;
+      --misc
+      clkdiv10     : in   std_logic_vector(7 downto 0);
+      linkdis      : out  std_ulogic;
+      testrst      : in   std_ulogic := '0';
+      testen       : in   std_ulogic := '0';
+      --rmapen
+      rmapen       : in   std_ulogic;
+      rmapnodeaddr : in   std_logic_vector(7 downto 0);
+      --parallel rx data out
+      rxdav        : out  std_ulogic;
+      rxdataout    : out  std_logic_vector(8 downto 0)
+    );
+  end component;
+
+
+  component grspw_codec_gen is
+    generic(
+      ports        : integer range 1 to 2 := 1;
+      input_type   : integer range 0 to 4 := 0;
+      output_type  : integer range 0 to 2 := 0;
+      rxtx_sameclk : integer range 0 to 1 := 0;
+      fifosize     : integer range 16 to 2048 := 64;
+      tech         : integer;
+      scantest     : integer range 0 to 1 := 0;
+      techfifo     : integer range 0 to 1 := 0;
+      ft           : integer range 0 to 2 := 0
+      );
+    port(
+      rst          : in  std_ulogic;
+      clk          : in  std_ulogic;
+      rxclk0       : in  std_ulogic;
+      rxclk1       : in  std_ulogic;
+      txclk        : in  std_ulogic;
+      txclkn       : in  std_ulogic;
+      testen       : in  std_ulogic;
+      testrst      : in  std_ulogic;
+      --spw in
+      d            : in  std_logic_vector(3 downto 0);
+      dv           : in  std_logic_vector(3 downto 0);
+      dconnect     : in  std_logic_vector(3 downto 0);
+      --spw out
+      do           : out std_logic_vector(3 downto 0);
+      so           : out std_logic_vector(3 downto 0);
+      --link fsm
+      linkdisabled : in  std_ulogic;
+      linkstart    : in  std_ulogic;
+      autostart    : in  std_ulogic;
+      portsel      : in  std_ulogic;
+      noportforce  : in  std_ulogic;
+      rdivisor     : in  std_logic_vector(7 downto 0);
+      idivisor     : in  std_logic_vector(7 downto 0);
+      state        : out std_logic_vector(2 downto 0);
+      actport      : out std_ulogic;
+      dconnecterr  : out std_ulogic;
+      crederr      : out std_ulogic;
+      escerr       : out std_ulogic;
+      parerr       : out std_ulogic;
+      --rx iface
+      rxicharav    : out std_ulogic;
+      rxicharcnt   : out std_logic_vector(11 downto 0);
+      rxichar      : out std_logic_vector(8 downto 0);
+      rxiread      : in  std_ulogic;
+      rxififorst   : in  std_ulogic;
+      --tx iface
+      txicharcnt   : out std_logic_vector(11 downto 0);
+      txifull      : out std_ulogic;
+      txiempty     : out std_ulogic;
+      txiwrite     : in  std_ulogic;
+      txichar      : in  std_logic_vector(8 downto 0);
+      txififorst   : in  std_ulogic;
+      txififorstact: out std_ulogic;
+      --time iface
+      tickin       : in  std_ulogic;
+      timein       : in  std_logic_vector(7 downto 0);
+      tickin_done  : out std_ulogic;
+      tickout      : out std_ulogic;
+      timeout      : out std_logic_vector(7 downto 0);
+      --misc
+      merror       : out std_ulogic
+    );
+  end component;
+
+
 
 end package;

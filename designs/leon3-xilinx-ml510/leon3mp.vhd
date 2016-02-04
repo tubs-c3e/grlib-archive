@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 ------------------------------------------------------------------------------
 
 
+
 library ieee;
 use ieee.std_logic_1164.all;
 library grlib, techmap;
@@ -35,9 +36,12 @@ use gaisler.memctrl.all;
 use gaisler.leon3.all;
 use gaisler.uart.all;
 use gaisler.misc.all;
+use gaisler.spi.all;
+use gaisler.i2c.all;
 use gaisler.net.all;
 use gaisler.jtag.all;
 use gaisler.pci.all;
+use gaisler.ddrpkg.all;
 
 library esa;
 use esa.memoryctrl.all;
@@ -91,9 +95,9 @@ entity leon3mp is
     dimm1_ddr2_dqs_p : inout std_logic_vector(8 downto 0);
     dimm1_ddr2_dqs_n : inout std_logic_vector(8 downto 0);
     dimm1_ddr2_dqm   : out std_logic_vector(8 downto 0);
-    dimm1_ddr2_dq    : inout std_logic_vector(63 downto 0);
+    dimm1_ddr2_dq    : inout std_logic_vector(71 downto 0);
     dimm1_ddr2_cke   : out std_logic_vector(1 downto 0);
-    dimm1_ddr2_cb    : inout std_logic_vector(7 downto 0);
+--    dimm1_ddr2_cb    : inout std_logic_vector(7 downto 0);
     dimm1_ddr2_cas_b : out std_ulogic;
     dimm1_ddr2_ba    : out std_logic_vector(2 downto 0);
     dimm1_ddr2_a     : out std_logic_vector(13 downto 0);
@@ -108,12 +112,13 @@ entity leon3mp is
     dimm0_ddr2_dqs_p : inout std_logic_vector(8 downto 0);
     dimm0_ddr2_dqs_n : inout std_logic_vector(8 downto 0);
     dimm0_ddr2_dqm   : out std_logic_vector(8 downto 0);
-    dimm0_ddr2_dq    : inout std_logic_vector(63 downto 0);
+    dimm0_ddr2_dq    : inout std_logic_vector(71 downto 0);
     dimm0_ddr2_cke   : out std_logic_vector(1 downto 0);
-    dimm0_ddr2_cb    : inout std_logic_vector(7 downto 0);
+--    dimm0_ddr2_cb    : inout std_logic_vector(7 downto 0);
     dimm0_ddr2_cas_b : out std_ulogic;
     dimm0_ddr2_ba    : out std_logic_vector(2 downto 0);
     dimm0_ddr2_a     : out std_logic_vector(13 downto 0);
+    dimm0_ddr2_reset_n : out std_ulogic;
 
     -- Ethernet PHY
     phy0_txer        : out std_ulogic;
@@ -215,13 +220,13 @@ entity leon3mp is
     uart1_cts_b      : in  std_ulogic;
     uart0_txd        : out std_ulogic;
     uart0_rxd        : in  std_ulogic;
-    uart0_rts_b      : out std_ulogic;
+    uart0_rts_b      : out std_ulogic
 --    uart0_cts_b      : in  std_ulogic
 
     -- System monitor
 --    test_mon_vrefp   : in std_ulogic;
-    test_mon_vp0_p   : in std_ulogic;
-    test_mon_vn0_n   : in std_ulogic
+--    test_mon_vp0_p   : in std_ulogic;
+--    test_mon_vn0_n   : in std_ulogic
 --    test_mon_avdd    : in std_ulogic    
     );
 end;
@@ -261,9 +266,9 @@ component BUFG port (O : out std_logic; I : in std_logic); end component;
 
 constant blength : integer := 12;
 constant fifodepth : integer := 8;
-constant maxahbm : integer := NCPU+CFG_AHB_UART
-	+CFG_GRETH+CFG_AHB_JTAG+CFG_SVGA_ENABLE;
-
+constant maxahbm : integer := NCPU+CFG_AHB_UART+CFG_AHB_JTAG+
+                              CFG_SVGA_ENABLE+CFG_PCI;
+               
 -- Set this constant to 1 to include an APB bridge with the Logan logic
 -- analyzer attached to the PCI signals
 constant CFG_LOGAN : integer := 0;
@@ -334,6 +339,7 @@ signal slvsel : std_logic_vector(CFG_SPICTRL_SLVS-1 downto 0);
 constant BOARD_FREQ_200 : integer := 200000;   -- input frequency in KHz
 constant BOARD_FREQ : integer := 100000;   -- input frequency in KHz
 constant CPU_FREQ : integer := BOARD_FREQ * CFG_CLKMUL / CFG_CLKDIV;  -- cpu frequency in KHz
+constant I2C_FILTER : integer := (CPU_FREQ*5+50000)/100000+1;
 
 -- DDR clock is 200 MHz clock unless CFG_DDR2SP_NOSYNC is set. If that config
 -- option is set the DDR clock is 2x CPU clock.
@@ -343,9 +349,6 @@ constant DDR_FREQ : integer :=
 constant IOAEN : integer := CFG_DDR2SP;
 
 signal stati : ahbstat_in_type;
-
-signal ddsi  : ddrmem_in_type;
-signal ddso  : ddrmem_out_type;
 
 signal ddr0_clkv 	: std_logic_vector(2 downto 0);
 signal ddr0_clkbv	: std_logic_vector(2 downto 0);
@@ -368,7 +371,10 @@ signal pci_host, pci_66 : std_ulogic;
 signal pci_intv : std_logic_vector(3 downto 0);
 signal pcii : pci_in_type;
 signal pcio : pci_out_type;
+signal clkma, clkmb, clkmc : std_ulogic;
 
+signal clk0_tb, rst0_tb, rst0_tbn : std_ulogic;
+signal phy_init_done : std_ulogic;
 -- Logan signals
 signal signals : std_logic_vector(63*CFG_LOGAN downto 0);       
 
@@ -390,6 +396,8 @@ attribute syn_keep of clk40 : signal is true;
 attribute syn_preserve of clk40 : signal is true;
 attribute syn_keep of clk65 : signal is true;
 attribute syn_preserve of clk65 : signal is true;
+attribute syn_keep of phy_init_done : signal is true;
+attribute syn_preserve of phy_init_done : signal is true;
 
 attribute keep : boolean;
 attribute keep of lock0 : signal is true;
@@ -409,14 +417,11 @@ attribute syn_noprune of sysace_fpga_clk_pad : label is true;
 begin
 
   vcc <= (others => '1'); gnd <= (others => '0');
-  
+  rst0_tbn <= not rst0_tb; 
 ----------------------------------------------------------------------
 ---  Reset and Clock generation  -------------------------------------
 ----------------------------------------------------------------------
   
-  clk_pad : clkpad generic map (tech => padtech, arch => 2, level => cmos, voltage => x25v) 
-    port map (user_clksys, lclk); 
-
   flashclk_pad : outpad generic map (tech => padtech, slew => 1, strength => 24) 
     port map (flash_clk, flashclkl);
 
@@ -439,7 +444,7 @@ begin
   clkgen0 : clkgen  		-- system clock generator
     generic map (CFG_FABTECH, CFG_CLKMUL, CFG_CLKDIV, 1, 1,
                  1, CFG_PCIDLL, CFG_PCISYSCLK, BOARD_FREQ, 1)
-    port map (lclk, pci_clk_fb, clkm, open, clkm2x, flashclkl, pciclk, cgi, cgo,
+    port map (lclk, pci_clk_fb, clkmc, open, clkm2x, flashclkl, pciclk, cgi, cgo,
               open, open, clk_200);
   cgi.pllctrl <= "00"; cgi.pllrst <= rstraw; cgi.pllref <= '0';
 
@@ -464,6 +469,10 @@ begin
   port map (rst, clkm, clklock, rstn, rstraw);
   clklock <= lock0 and lock1 and cgo.clklock and cgo3.clklock;
 
+  clk_pad : clkpad generic map (tech => padtech, arch => 2, level => cmos, voltage => x25v) 
+    port map (user_clksys, lclk);
+  
+  
 ----------------------------------------------------------------------
 ---  AHB CONTROLLER --------------------------------------------------
 ----------------------------------------------------------------------
@@ -587,8 +596,14 @@ begin
       port map (flash_d, memo.data(31 downto 16), 
 		memo.vbdrive(31 downto 16), memi.data(31 downto 16));
       
+  dbg_led0_pad : outpad generic map (tech => padtech, level => cmos, voltage => x33v)
+    port map (dbg_led(3), phy_init_done);
+
+  clkm <= clkma; clkma <= clkmb; clkmb <= clkmc;
+
   ddrsp0 : if (CFG_DDR2SP /= 0) generate
 
+    phy_init_done <= '1';
     -- DDR clock selection
     -- If the synchronization registers are removed in the DDR controller, we
     -- assume that the user wants to run at 2x the system clock. Otherwise the
@@ -599,7 +614,8 @@ begin
     ddrclksel2x: if CFG_DDR2SP_NOSYNC /= 0 generate
       clkddr <= clkm2x;
     end generate;
-    
+    dimm0_ddr2_reset_n_pad : outpad generic map (tech => padtech, level => cmos, voltage => x33v)
+      port map (dimm0_ddr2_reset_n, rst);
     -- Slot 0
     ddrc0 : ddr2spa generic map ( fabtech => fabtech, memtech => memtech, 
       hindex => 0, haddr => 16#400#, hmask => 16#e00#, ioaddr => 1, 
@@ -611,6 +627,8 @@ begin
       ddelayb2 => CFG_DDR2SP_DELAY2, ddelayb3 => CFG_DDR2SP_DELAY3, 
       ddelayb4 => CFG_DDR2SP_DELAY4, ddelayb5 => CFG_DDR2SP_DELAY5,
       ddelayb6 => CFG_DDR2SP_DELAY6, ddelayb7 => CFG_DDR2SP_DELAY7,
+      readdly => 1, rskew => 0, oepol => 0,
+      dqsgating => 0, rstdel  => 200, eightbanks => 1,
       numidelctrl => 2 + CFG_DDR2SP_DATAWIDTH/64, norefclk => 0, odten => 3,
       nosync => CFG_DDR2SP_NOSYNC)
     port map (rst, rstn, clkddr, clkm, clk_200, lock0, clkml0, clkml0, ahbsi, ahbso(0),
@@ -619,13 +637,13 @@ begin
               dimm0_ddr2_cas_b, dimm0_ddr2_dqm(7 downto 4*(32/CFG_DDR2SP_DATAWIDTH)),
               dimm0_ddr2_dqs_p(7 downto 4*(32/CFG_DDR2SP_DATAWIDTH)),
               dimm0_ddr2_dqs_n(7 downto 4*(32/CFG_DDR2SP_DATAWIDTH)), dimm0_ddr2_a,
-              dimm0_ddr2_ba(1 downto 0), dimm0_ddr2_dq(63 downto 32*(32/CFG_DDR2SP_DATAWIDTH)),
+              dimm0_ddr2_ba(2 downto 0), dimm0_ddr2_dq(63 downto 32*(32/CFG_DDR2SP_DATAWIDTH)),
               dimm0_ddr2_odt);
     dimm0_ddr2_pll_clkin_p <= ddr0_clkv(0);
     dimm0_ddr2_pll_clkin_n <= ddr0_clkbv(0);
     -- Ground unused bank address and memory mask
-    dimm0_ddr2_ba_notused_pad : outpad generic map (tech => padtech, level => SSTL18_I)
-      port map (dimm0_ddr2_ba(2), gnd(0));
+--    dimm0_ddr2_ba_notused_pad : outpad generic map (tech => padtech, level => SSTL18_I)
+--      port map (dimm0_ddr2_ba(2), gnd(0));
     dimm0_ddr2_dqm_notused8_pad : outpad generic map (tech => padtech, level => SSTL18_I)
       port map (dimm0_ddr2_dqm(8), gnd(0));
     -- Tri-state unused data strobe
@@ -635,7 +653,7 @@ begin
       port map (dimm0_ddr2_dqs_n(8), gnd(0), vcc(0), open);
     -- Tristate unused check bits
     dimm0_cb_notused_pad : iopadv generic map (tech => padtech, width => 8, level => SSTL18_II)
-      port map (dimm0_ddr2_cb, gnd(7 downto 0), vcc(0), open);
+      port map (dimm0_ddr2_dq(71 downto 64), gnd(7 downto 0), vcc(0), open);
     -- Handle signals not used with 32-bit interface
     ddr032bit: if CFG_DDR2SP_DATAWIDTH /= 64 generate
       dimm0_ddr2_dqm_notused30_pads : outpadv generic map (tech => padtech, width => 4, level => SSTL18_I)
@@ -659,6 +677,8 @@ begin
       ddelayb2 => CFG_DDR2SP_DELAY2, ddelayb3 => CFG_DDR2SP_DELAY3, 
       ddelayb4 => CFG_DDR2SP_DELAY4, ddelayb5 => CFG_DDR2SP_DELAY5,
       ddelayb6 => CFG_DDR2SP_DELAY6, ddelayb7 => CFG_DDR2SP_DELAY7,
+      readdly => 1, rskew => 0, oepol => 0,
+      dqsgating => 0, rstdel  => 200, eightbanks => 1,
       numidelctrl => 2 + CFG_DDR2SP_DATAWIDTH/64, norefclk => 0, odten => 3,
       nosync => CFG_DDR2SP_NOSYNC)
     port map (rst, rstn, clkddr, clkm, clk_200, lock1, clkml1, clkml1, ahbsi, ahbso(1),
@@ -667,13 +687,13 @@ begin
               dimm1_ddr2_cas_b, dimm1_ddr2_dqm(7 downto 4*(32/CFG_DDR2SP_DATAWIDTH)),
               dimm1_ddr2_dqs_p(7 downto 4*(32/CFG_DDR2SP_DATAWIDTH)),
               dimm1_ddr2_dqs_n(7 downto 4*(32/CFG_DDR2SP_DATAWIDTH)), dimm1_ddr2_a,
-              dimm1_ddr2_ba(1 downto 0), dimm1_ddr2_dq(63 downto 32*(32/ CFG_DDR2SP_DATAWIDTH)),
+              dimm1_ddr2_ba(2 downto 0), dimm1_ddr2_dq(63 downto 32*(32/ CFG_DDR2SP_DATAWIDTH)),
               dimm1_ddr2_odt);
     dimm1_ddr2_pll_clkin_p <= ddr1_clkv(0);
     dimm1_ddr2_pll_clkin_n <= ddr1_clkbv(0);
     -- Ground unused bank address and memory mask
-    dimm1_ddr2_ba_notused_pad : outpad generic map (tech => padtech, level => SSTL18_I)
-      port map (dimm1_ddr2_ba(2), gnd(0));
+--    dimm1_ddr2_ba_notused_pad : outpad generic map (tech => padtech, level => SSTL18_I)
+--      port map (dimm1_ddr2_ba(2), gnd(0));
     dimm1_ddr2_dqm_notused8_pad : outpad generic map (tech => padtech, level => SSTL18_I)
       port map (dimm1_ddr2_dqm(8), gnd(0));
     -- Tri-state unused data strobe
@@ -683,7 +703,7 @@ begin
       port map (dimm1_ddr2_dqs_n(8), gnd(0), vcc(0), open);
     -- Tristate unused check bits
     dimm1_cb_notused_pad : iopadv generic map (tech => padtech, width => 8, level => SSTL18_II)
-      port map (dimm1_ddr2_cb, gnd(7 downto 0), vcc(0), open);
+      port map (dimm1_ddr2_dq(71 downto 64), gnd(7 downto 0), vcc(0), open);
     -- Handle signals not used with 32-bit interface
     ddr132bit: if CFG_DDR2SP_DATAWIDTH /= 64 generate
       dimm1_ddr2_dqm_notused30_pads : outpadv generic map (tech => padtech, width => 4, level => SSTL18_I)
@@ -697,7 +717,7 @@ begin
     end generate;
   end generate;
 
-  noddr :  if (CFG_DDR2SP = 0) generate lock0 <= '1'; lock1 <= '1'; end generate;
+--  noddr :  if (CFG_DDR2SP = 0) generate lock0 <= '1'; lock1 <= '1'; end generate;
   
 ----------------------------------------------------------------------
 ---  System ACE I/F Controller ---------------------------------------
@@ -795,7 +815,8 @@ begin
                 vgalock, lcd_datal, lcd_hsyncl, lcd_vsyncl, lcd_del);
     
     i2cdvi : i2cmst
-      generic map (pindex => 6, paddr => 6, pmask => 16#FFF#, pirq => 14)
+      generic map (pindex => 6, paddr => 6, pmask => 16#FFF#,
+                   pirq => 14, filter => I2C_FILTER)
       port map (rstn, clkm, apbi, apbo(6), dvi_i2ci, dvi_i2co);
   end generate;
 
@@ -837,9 +858,9 @@ begin
     gpioo.dout <= (others => '1');
   end generate;
   
-  dbg_led_pads : iopadvv generic map (tech => padtech, width => 4)
-    port map (dbg_led, gpioo.dout(3 downto 0), gpioo.oen(3 downto 0), 
-		gpioi.din(3 downto 0));
+  dbg_led_pads : iopadvv generic map (tech => padtech, width => 3,  level => cmos, voltage => x33v)
+    port map (dbg_led(2 downto 0), gpioo.dout(2 downto 0), gpioo.oen(2 downto 0), 
+		gpioi.din(2 downto 0));
   dvi_gpio_pad : iopad generic map (tech => padtech)
     port map (dvi_gpio1, gpioo.dout(4), gpioo.oen(4), gpioi.din(4));
   iic_therm_b_pad : inpad generic map (tech => padtech)
@@ -859,7 +880,8 @@ begin
 
   i2cm: if CFG_I2C_ENABLE = 1 generate  -- I2C master
     i2c0 : i2cmst
-      generic map (pindex => 9, paddr => 9, pmask => 16#FFF#, pirq => 3)
+      generic map (pindex => 9, paddr => 9, pmask => 16#FFF#,
+                   pirq => 3, filter => I2C_FILTER)
       port map (rstn, clkm, apbi, apbo(9), i2ci, i2co);
   end generate;
 
@@ -877,7 +899,8 @@ begin
     spi1 : spictrl
       generic map (pindex => 10, paddr  => 10, pmask  => 16#fff#, pirq => 12,
                    fdepth => CFG_SPICTRL_FIFO, slvselen => CFG_SPICTRL_SLVREG,
-                   slvselsz => CFG_SPICTRL_SLVS, odmode => 0)
+                   slvselsz => CFG_SPICTRL_SLVS, odmode => 0, netlist => 0,
+                   syncram => CFG_SPICTRL_SYNCRAM, ft => CFG_SPICTRL_FT)
       port map (rstn, clkm, apbi, apbo(10), spii, spio, slvsel);
     spii.spisel <= '1';                 -- Master only
     miso_pad : inpad generic map (tech => padtech)
@@ -959,7 +982,8 @@ begin
 
   pp : if CFG_PCI /= 0 generate
     pci_mtf0 : if CFG_PCI = 2 generate	-- master/target with fifo
-      pci0 : pci_mtf generic map (memtech => memtech, hmstndx => CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG, 
+      pci0 : pci_mtf generic map (memtech => memtech,
+          hmstndx => NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE+CFG_GRETH, 
 	  fifodepth => log2(CFG_PCIDEPTH), device_id => CFG_PCIDID, vendor_id => CFG_PCIVID,
 	  hslvndx => 7, pindex => 4, paddr => 4, haddr => 16#800#, hmask => 16#c00#,
 	  ioaddr => 16#400#, irq => 5, irqmask => 16#F#, nsync => 2, hostrst => 1)
@@ -968,8 +992,10 @@ begin
     end generate;
 
     pci_mtf1 : if CFG_PCI = 3 generate	-- master/target with fifo and DMA
-      dma : pcidma generic map (memtech => memtech, dmstndx => CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG+1, 
-	  dapbndx => 5, dapbaddr => 5, blength => blength, mstndx => CFG_NCPU+CFG_AHB_UART+CFG_AHB_JTAG,
+      dma : pcidma generic map (memtech => memtech,
+          dmstndx => NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE+CFG_GRETH+1, 
+	  dapbndx => 5, dapbaddr => 5, blength => blength,
+          mstndx => NCPU+CFG_AHB_UART+CFG_AHB_JTAG+CFG_SVGA_ENABLE+CFG_GRETH,
 	  fifodepth => log2(fifodepth), device_id => CFG_PCIDID, vendor_id => CFG_PCIVID,
 	  slvndx => 7, apbndx => 4, apbaddr => 4, haddr => 16#800#, hmask => 16#c00#,
           ioaddr => 16#400#, irq => 5, irqmask => 16#F#, nsync => 2, hostrst => 1)
@@ -1045,8 +1071,8 @@ begin
     sysmoni.convstclk <= '0';
     sysmoni.vauxn <= (others => '0');
     sysmoni.vauxp <= (others => '0');
-    sysmoni.vn <= test_mon_vn0_n;
-    sysmoni.vp <= test_mon_vp0_p;
+--    sysmoni.vn <= test_mon_vn0_n;
+--    sysmoni.vp <= test_mon_vp0_p;
   end generate grsmon;
   
 -----------------------------------------------------------------------

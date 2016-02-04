@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ entity testbench is
     romwidth  : integer := 32;		-- rom data width (8/32)
     romdepth  : integer := 16;		-- rom address depth
     sramwidth  : integer := 32;		-- ram data width (8/16/32)
-    sramdepth  : integer := 18;		-- ram address depth
+    sramdepth  : integer := 21;		-- ram address depth
     srambanks  : integer := 2		-- number of ram banks
   );
   port (

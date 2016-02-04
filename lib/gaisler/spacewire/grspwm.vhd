@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -41,8 +41,8 @@ entity grspwm is
     pirq         : integer range 0 to NAHBIRQ-1 := 0;
     sysfreq      : integer := 10000;                          -- spw1
     usegen       : integer range 0 to 1  := 1;                -- spw1
-    nsync        : integer range 1 to 2  := 1; 
-    rmap         : integer range 0 to 1  := 0;
+    nsync        : integer range 1 to 2  := 1;
+    rmap         : integer range 0 to 2  := 0;
     rmapcrc      : integer range 0 to 1  := 0;
     fifosize1    : integer range 4 to 32 := 32;
     fifosize2    : integer range 16 to 64 := 64;
@@ -56,16 +56,20 @@ entity grspwm is
     ports        : integer range 1 to 2 := 1;
     dmachan      : integer range 1 to 4 := 1;                 -- spw2
     memtech      : integer range 0 to NTECH := DEFMEMTECH;
-    spwcore      : integer range 1 to 2 := 2;                 
-    input_type   : integer range 0 to 3 := 0;                 
-    output_type  : integer range 0 to 2 := 0;                 
-    rxtx_sameclk : integer range 0 to 1 := 0
-  ); 
+    spwcore      : integer range 1 to 2 := 2;
+    input_type   : integer range 0 to 4 := 0;
+    output_type  : integer range 0 to 2 := 0;
+    rxtx_sameclk : integer range 0 to 1 := 0;
+    nodeaddr     : integer range 0 to 255 := 254;
+    destkey      : integer range 0 to 255 := 0
+  );
   port(
     rst        : in  std_ulogic;
     clk        : in  std_ulogic;
-    rxclk      : in  std_logic_vector(1 downto 0);
+    rxclk0     : in  std_ulogic;
+    rxclk1     : in  std_ulogic;
     txclk      : in  std_ulogic;
+    txclkn     : in  std_ulogic;
     ahbmi      : in  ahb_mst_in_type;
     ahbmo      : out ahb_mst_out_type;
     apbi       : in  apb_slv_in_type;
@@ -74,27 +78,26 @@ entity grspwm is
     swno       : out grspw_out_type
   );
 end entity;
-  
+
 architecture rtl of grspwm is
-  signal dummy : std_ulogic;
 begin
-  
+
   spw1 : if spwcore = 1 generate
     u0 : grspw
-    generic map(tech, hindex, pindex, paddr, pmask, pirq, 
-          sysfreq, usegen, nsync, rmap, rmapcrc, fifosize1, fifosize2, 
-          rxclkbuftype, rxunaligned, rmapbufs, ft, scantest, techfifo, 
-          netlist, ports, memtech) 
+    generic map(tech, hindex, pindex, paddr, pmask, pirq,
+          sysfreq, usegen, nsync, rmap, rmapcrc, fifosize1, fifosize2,
+          rxclkbuftype, rxunaligned, rmapbufs, ft, scantest, techfifo,
+          netlist, ports, memtech, nodeaddr, destkey)
     port map(rst, clk, txclk, ahbmi, ahbmo, apbi, apbo, swni, swno);
   end generate;
 
   spw2 : if spwcore = 2 generate
     u0 : grspw2
-  generic map(tech, hindex, pindex, paddr, pmask, pirq, 
+  generic map(tech, hindex, pindex, paddr, pmask, pirq,
           rmap, rmapcrc, fifosize1, fifosize2, rxclkbuftype,
           rxunaligned, rmapbufs, ft, scantest, techfifo, ports,
-          dmachan, memtech, input_type, output_type, rxtx_sameclk, netlist) 
-  port map(rst, clk, rxclk, txclk, dummy, ahbmi, ahbmo, apbi, apbo, swni, swno);
+          dmachan, memtech, input_type, output_type, rxtx_sameclk, netlist, nodeaddr, destkey)
+  port map(rst, clk, rxclk0, rxclk1, txclk, txclkn, ahbmi, ahbmo, apbi, apbo, swni, swno);
   end generate;
 
 end architecture;

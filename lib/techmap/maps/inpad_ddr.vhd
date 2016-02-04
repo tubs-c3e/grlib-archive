@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ architecture rtl of inpad_ddr is
   signal d : std_ulogic;
   
 begin
-  def: if (tech /= easic90) generate
+  def: if (tech /= easic90) and (tech /= easic45) generate
     p : inpad generic map (tech, level, voltage, filter, strength)
       port map (pad, d);  
     ddrreg : ddr_ireg generic map (tech)
@@ -67,13 +67,21 @@ begin
       port map(pad, d);
     ddrreg : nextreme_iddr_reg
       port map (ck => c1, d => d, qh => o1, ql => o2, rstb => r);
-  end generate; 
+  end generate;
+
+  n2x : if (tech = easic45) generate
+    p :  n2x_inpad_ddr generic map (level, voltage)
+      port map (pad, o1, o2, c1, c2, ce, r, s);
+    d <= '0';
+  end generate;
+  
 end;
 
 library techmap;
 library ieee;
 use ieee.std_logic_1164.all;
 use techmap.gencomp.all;
+use techmap.allpads.all;
 
 entity inpad_ddrv is
   generic (
@@ -96,8 +104,14 @@ end;
 
 architecture rtl of inpad_ddrv is
 begin
-  v : for i in width-1 downto 0 generate
-    x0 : inpad_ddr generic map (tech, level, voltage, filter, strength)
-      port map (pad(i), o1(i), o2(i), c1, c2, ce, r, s);
+  n2x : if (tech = easic45) generate
+    p :  n2x_inpad_ddrv generic map (level, voltage, width)
+      port map (pad, o1, o2, c1, c2, ce, r, s);
+  end generate;
+  base : if (tech /= easic45) generate
+    v : for i in width-1 downto 0 generate
+      x0 : inpad_ddr generic map (tech, level, voltage, filter, strength)
+        port map (pad(i), o1(i), o2(i), c1, c2, ce, r, s);
+    end generate;
   end generate;
 end;

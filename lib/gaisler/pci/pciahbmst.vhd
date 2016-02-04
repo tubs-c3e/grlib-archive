@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 -- File:        pciahbmst.vhd
 -- Author:      Jiri Gaisler - Gaisler Research
 -- Description: Generic AHB master interface
-------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -30,7 +30,7 @@ use grlib.amba.all;
 use grlib.stdlib.all;
 use grlib.devices.all;
 library gaisler;
-use gaisler.misc.all;
+use gaisler.pci.all;
 
 entity pciahbmst is
   generic (
@@ -44,8 +44,8 @@ entity pciahbmst is
    port (
       rst  : in  std_ulogic;
       clk  : in  std_ulogic;
-      dmai : in ahb_dma_in_type;
-      dmao : out ahb_dma_out_type;
+      dmai : in  pci_ahb_dma_in_type;
+      dmao : out pci_ahb_dma_out_type;
       ahbi : in  ahb_mst_in_type;
       ahbo : out ahb_mst_out_type 
       );
@@ -146,7 +146,7 @@ begin
     ahbo.haddr   <= haddr;
     ahbo.htrans  <= htrans;
     ahbo.hbusreq <= hbusreq;
-    ahbo.hwdata  <= dmai.wdata;
+    ahbo.hwdata  <= ahbdrivedata(dmai.wdata);
     ahbo.hconfig <= hconfig;
     ahbo.hlock   <= '0';
     ahbo.hwrite  <= dmai.write;
@@ -162,7 +162,7 @@ begin
     dmao.mexc    <= mexc;
     dmao.retry   <= retry;
     dmao.haddr   <= newaddr(9 downto 0);
-    dmao.rdata   <= ahbi.hrdata;
+    dmao.rdata   <= ahbreadword(ahbi.hrdata);
 
   end process;
 

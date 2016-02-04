@@ -67,8 +67,8 @@
 
  ARCHITECTURE RTL OF dq_dqs_inst IS
 
-	 ATTRIBUTE synthesis_clearbox : boolean;
-	 ATTRIBUTE synthesis_clearbox OF RTL : ARCHITECTURE IS true;
+--	 ATTRIBUTE synthesis_clearbox : boolean;
+--	 ATTRIBUTE synthesis_clearbox OF RTL : ARCHITECTURE IS true;
 	 ATTRIBUTE ALTERA_ATTRIBUTE : string;
 	 ATTRIBUTE ALTERA_ATTRIBUTE OF RTL : ARCHITECTURE IS "{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_0_output_ddio_out_inst"" }DQ_GROUP=9;{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_1_output_ddio_out_inst"" }DQ_GROUP=9;{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_2_output_ddio_out_inst"" }DQ_GROUP=9;{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_3_output_ddio_out_inst"" }DQ_GROUP=9;{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_4_output_ddio_out_inst"" }DQ_GROUP=9;{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_5_output_ddio_out_inst"" }DQ_GROUP=9;{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_6_output_ddio_out_inst"" }DQ_GROUP=9;{ -from ""dqs_output_ddio_out_inst"" -to ""bidir_dq_7_output_ddio_out_inst"" }DQ_GROUP=9";
 

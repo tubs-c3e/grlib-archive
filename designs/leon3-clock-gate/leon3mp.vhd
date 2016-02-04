@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -204,7 +204,7 @@ signal pci_arb_req_n, pci_arb_gnt_n   : std_logic_vector(0 to 3);
 
 signal spwi : grspw_in_type_vector(0 to 2);
 signal spwo : grspw_out_type_vector(0 to 2);
-signal spw_rx_clk : std_logic_vector(1 downto 0);
+signal spw_rx_clk : std_ulogic;
 
 constant BOARD_FREQ : integer := 40000;	-- Board frequency in KHz
 constant CPU_FREQ : integer := BOARD_FREQ * CFG_CLKMUL / CFG_CLKDIV; 
@@ -230,7 +230,7 @@ begin
 	CFG_CLK_NOFB, CFG_PCI, CFG_PCIDLL, CFG_PCISYSCLK)
     port map (lclk, pci_lclk, clkx, open, open, sdclkl, pciclk, cgi, cgo);
 
-  clkpwd : entity work.clkgate generic map (fabtech, NCPU) 
+  clkpwd : entity work.clkgate generic map (fabtech, NCPU, CFG_DSU) 
 	port map (rstn, clkx, dsuo.pwd(NCPU-1 downto 0), clkm, gclk);
   sdclk_pad : outpad generic map (tech => padtech, slew => 1, strength => 24) 
 	port map (sdclk, sdclkl);
@@ -282,6 +282,7 @@ begin
 
   nodsu : if CFG_DSU = 0 generate 
     ahbso(2) <= ahbs_none; dsuo.tstop <= '0'; dsuo.active <= '0';
+    dbgi <= (others => dbgi_none);
   end generate;
 
   dcomgen : if CFG_AHB_UART = 1 generate
@@ -641,7 +642,7 @@ begin
 -----------------------------------------------------------------------
   --This template does NOT currently support grspw2 so only use grspw1
   spw : if CFG_SPW_EN > 0 generate
-   spw_rx_clk <= (others => '0');
+   spw_rx_clk <= '0';
    spw_clk_pad : clkpad generic map (tech => padtech) port map (spw_clk, spw_lclk); 
    swloop : for i in 0 to CFG_SPW_NUM-1 generate
    sw0 : grspwm generic map(tech => memtech,
@@ -649,7 +650,8 @@ begin
      sysfreq => sysfreq, nsync => 1, rmap => 0, ports => 1, dmachan => 1,
      fifosize1 => CFG_SPW_AHBFIFO, fifosize2 => CFG_SPW_RXFIFO,
      rxclkbuftype => 1, spwcore => CFG_SPW_GRSPW)
-     port map(resetn, clkm, spw_rx_clk, spw_lclk, ahbmi, ahbmo(maxahbmsp+i), 
+     port map(resetn, clkm, spw_rx_clk, spw_rx_clk, spw_lclk, spw_lclk,
+        ahbmi, ahbmo(maxahbmsp+i), 
 	apbi, apbo(12+i), spwi(i), spwo(i));
      spwi(i).tickin <= '0'; spwi(i).rmapen <= '1';
      spwi(i).clkdiv10 <= conv_std_logic_vector(sysfreq/10000-1, 8);

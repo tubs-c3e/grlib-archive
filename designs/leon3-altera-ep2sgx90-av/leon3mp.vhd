@@ -25,6 +25,7 @@ use grlib.stdlib.all;
 use techmap.gencomp.all;
 library gaisler;
 use gaisler.memctrl.all;
+use gaisler.ddrpkg.all;
 use gaisler.leon3.all;
 use gaisler.uart.all;
 use gaisler.misc.all;
@@ -135,9 +136,6 @@ architecture rtl of leon3mp is
   signal memo, smemo : memory_out_type;
   signal wpo         : wprot_out_type;
   
-  signal ddsi  : ddrmem_in_type;
-  signal ddso  : ddrmem_out_type;
-
   signal ddrclkfb, ssrclkfb, ddr_clkl, ddr_clk90l, ddr_clknl, ddr_clk270l : std_ulogic;
   signal ddr_clkv 	: std_logic_vector(2 downto 0);
   signal ddr_clkbv	: std_logic_vector(2 downto 0);
@@ -258,7 +256,9 @@ begin
       dsuact_pad : outpad generic map (tech => padtech) port map (dsuact, dsuo.active);
     end generate;
   end generate;
-  nodcom : if CFG_DSU = 0 generate ahbso(2) <= ahbs_none; end generate;
+  nodsu : if CFG_DSU = 0 generate 
+    ahbso(2) <= ahbs_none; dsuo.tstop <= '0'; dsuo.active <= '0';
+  end generate;
 
   dcomgen : if CFG_AHB_UART = 1 generate
     dcom0 : ahbuart                     -- Debug UART
@@ -281,9 +281,9 @@ begin
 
   mctrl0 : if CFG_MCTRL_LEON2 = 1 generate
     mctrl0 : mctrl generic map (hindex => 0, pindex => 0,
-           romaddr => 16#000#, rommask => 16#FE0#,
-           ioaddr => 16#200#, iomask => 16#FFF#,
-           ramaddr => 16#400#, rammask => 16#FFE#,
+           romaddr => 16#000#, rommask => 16#E00#,
+           ioaddr => 16#200#, iomask => 16#E00#,
+           ramaddr => 16#C00#, rammask => 16#F00#,
            paddr => 0, pmask => 16#FFF#,
            srbanks => 1, wprot => 0,
            ram8 => CFG_MCTRL_RAM8BIT, ram16 => CFG_MCTRL_RAM16BIT,
@@ -345,7 +345,7 @@ begin
 
   ddrsp0 : if (CFG_DDR2SP /= 0) generate 
     ddrc0 : ddr2spa generic map ( fabtech => fabtech, memtech => memtech, 
-      hindex => 3, haddr => 16#C00#, hmask => 16#E00#, ioaddr => 1, 
+      hindex => 3, haddr => 16#400#, hmask => 16#C00#, ioaddr => 1, 
       pwron => CFG_DDR2SP_INIT, MHz => BOARD_FREQ/1000, 
       clkmul => CFG_DDR2SP_FREQ/10, clkdiv => BOARD_FREQ/10000,
       ahbfreq => CPU_FREQ/1000, col => CFG_DDR2SP_COL,
@@ -462,7 +462,7 @@ begin
         sepirq => CFG_GPT_SEPIRQ, sbits => CFG_GPT_SW, ntimers => CFG_GPT_NTIM,
         nbits  => CFG_GPT_TW)
       port map (rstn, clkm, apbi, apbo(3), gpti, open);
-    gpti.dhalt <= dsuo.active; gpti.extclk <= '0';
+    gpti.dhalt <= dsuo.tstop; gpti.extclk <= '0';
   end generate;
   notim : if CFG_GPT_ENABLE = 0 generate apbo(3) <= apb_none; end generate;
   

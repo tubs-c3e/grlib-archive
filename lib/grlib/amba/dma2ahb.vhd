@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@
 -- Limitations  : The AMBA AHB interface has been reduced in function to support
 --                only what is required. The following features are constrained:
 --                Optionally generates HSIZE=BYTE, HWORD and WORD
---                Only generates HPROT="0000"
+--                Only generates HPROT="0011"
 --                Allways generates HBURST=HBURST_SINGLE, HBURST_INCR
 --                Optionally generates HBURST_INCR4, HBURST_INCR8, HBURST_INCR16
 --
@@ -59,13 +59,9 @@
 --
 -- Library      : gaisler
 --
--- Authors      : Mr Sandi Habinc
---                Gaisler Research AB
---                Forsta Langgatan 19
---                SE-413 27 Göteborg
---                Sweden
+-- Authors      : Aeroflex Gaisler AB
 --
--- Contact      : mailto:sandi@gaisler.com
+-- Contact      : mailto:support@gaisler.com
 --                http://www.gaisler.com
 --
 -- Disclaimer   : All information is provided "as is", there is no warranty that
@@ -97,7 +93,9 @@
 -- 1.9.6    JA       14 Dec 2007    Support for halfword and byte bursts
 -- 1.9.7    MI        4 Aug 2008    Support for Lock
 -- 1.9.8    SH       16 Apr 2009    Address recovery after SPLIT/RETRY moved
---------------------------------------------------------------------------------
+-- 1.9.9    SH        9 Oct 2009    HPROT defult to 0x3
+-- 2.0      SH        4 Mar 2011    DMAOut.Grant masked while ReAddrPhase set
+ --------------------------------------------------------------------------------
 library  IEEE;
 use      IEEE.Std_Logic_1164.all;
 
@@ -183,14 +181,14 @@ begin
    -----------------------------------------------------------------------------
    -- Fixed AMBA AHB signals
    -----------------------------------------------------------------------------
-   AHBOut.HPROT               <= (others => '0');
+   AHBOut.HPROT               <= "0011";
 
    -----------------------------------------------------------------------------
    -- Combinatorial paths
    -----------------------------------------------------------------------------
    AHBOut.HADDR               <= Address;                -- internal to external
 
-   AHBOut.HWDATA              <= DMAIn.Data;             -- combinatorial path
+   AHBOut.HWDATA              <= ahbdrivedata(DMAIn.Data); -- combinatorial path
 
    DMAOut.OKAY                <= '1' when AHBIn.HREADY='1' and
                                           DataPhase ='1' and
@@ -208,7 +206,7 @@ begin
                                           AHBIN.HRESP=HRESP_ERROR else
                                  '0';
 
-   DMAOut.Grant               <= '0' when DelDataPhase='1' or ReDataPhase='1' else
+   DMAOut.Grant               <= '0' when ReDataPhase='1' or ReAddrPhase='1' else
                                  '1' when AHBIn.HREADY='1' and
                                           AHBInHGRANTx='1' and
                                           DMAIn.Request='1' else
@@ -311,7 +309,7 @@ begin
 
             if    AHBIn.HREADY='1' and DataPhase='1' then
                -- sample AHB input data at end of data phase
-               DMAOut.Data          <= AHBIn.HRDATA;
+               DMAOut.Data          <= ahbreadword(AHBIn.HRDATA);
                DataPhase            <= '0';              -- data phase ends
                DMAOut.Ready         <= '1';
             else

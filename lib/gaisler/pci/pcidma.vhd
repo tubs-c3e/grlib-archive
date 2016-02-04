@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ entity pcidma is
     dapbndx   : integer := 0;
     dapbaddr  : integer := 0;
     dapbmask  : integer := 16#fff#;
+    dapbirq   : integer := 0;
     blength   : integer := 16;
     mstndx    : integer := 0;
     abits     : integer := 21;
@@ -65,7 +66,8 @@ entity pcidma is
     irq       : integer := 0;
     irqmask   : integer := 0;
     scanen    : integer := 0;
-    hostrst   : integer := 0
+    hostrst   : integer := 0;
+    syncrst   : integer := 0
 );
    port(
       rst       : in std_logic;
@@ -90,13 +92,13 @@ signal ahbso2 : ahb_slv_out_type;
 
 begin
       dma : dmactrl generic map (hindex => dmstndx, slvindex => slvndx, pindex => dapbndx, 
-				 paddr => dapbaddr, blength => blength)
+				 paddr => dapbaddr, pirq => dapbirq, blength => blength)
       port map (rst, clk, apbi, dapbo, ahbmi, dahbmo, ahbsi, ahbso, ahbsi2, ahbso2);
 
       pci : pci_mtf generic map (memtech => memtech, hmstndx => mstndx, dmamst => dmstndx, 
 	fifodepth => fifodepth, device_id => device_id, vendor_id => vendor_id,
       	hslvndx => slvndx, pindex => apbndx, paddr => apbaddr, irq => irq, irqmask => irqmask, 
-	haddr => haddr, hmask => hmask, ioaddr => ioaddr, abits => abits, 
+	haddr => haddr, hmask => hmask, ioaddr => ioaddr, abits => abits, syncrst => syncrst,
 	dmaabits => dmaabits, nsync => nsync, oepol => oepol, endian => endian,
 	class_code => class_code, rev => rev, scanen => scanen, hostrst => hostrst)
       port map (rst, clk, pciclk, pcii, pcio, apbi, apbo, ahbmi, ahbmo, ahbsi2, ahbso2);

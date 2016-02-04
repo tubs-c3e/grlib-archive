@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -270,7 +270,8 @@ package grethpkg is
     generic(
       nsync          : integer range 1 to 2 := 2;
       rmii           : integer range 0 to 1 := 0;
-      multicast      : integer range 0 to 1 := 0);
+      multicast      : integer range 0 to 1 := 0;
+      maxsize        : integer);
     port(
       rst            : in  std_ulogic;
       clk            : in  std_ulogic;
@@ -366,6 +367,17 @@ package grethpkg is
       tmsto       : out eth_tx_ahb_out_type;
       rmsti       : in  eth_rx_gbit_ahb_in_type;
       rmsto       : out eth_rx_ahb_out_type);
+  end component;
+
+  component eth_edcl_ahb_mst is
+  port(
+    rst         : in  std_ulogic;
+    clk         : in  std_ulogic;
+    ahbmi       : in  ahbc_mst_in_type;
+    ahbmo       : out ahbc_mst_out_type;
+    tmsti       : in  eth_tx_ahb_in_type;
+    tmsto       : out eth_tx_ahb_out_type
+  );
   end component;
  
   function mirror(din : in std_logic_vector) return std_logic_vector;

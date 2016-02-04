@@ -2,14 +2,14 @@
 
 Prompt for target technology
 CONFIG_SYN_INFERRED
-  Selects the target technology for memory and pads. 
+  Selects the target technology for memory and pads.
   The following are available:
 
   - Inferred: Generic FPGA or ASIC targets if your synthesis tool
     is capable of inferring RAMs and pads automatically.
 
-  - Actel ProAsic/P/3, IGLOO and Axellerator FPGAs
-  - Aeroflex UT25CRH Rad-Hard 0.25 um CMOS 
+  - Actel ProAsic/P/3, IGLOO and Axcelerator FPGAs
+  - Aeroflex UT25CRH Rad-Hard 0.25 um CMOS
   - Altera: Most Altera FPGA families
   - Altera-Stratix: Altera Stratix FPGA family
   - Altera-StratixII: Altera Stratix-II FPGA family
@@ -19,15 +19,19 @@ CONFIG_SYN_INFERRED
   - Lattice : EC/ECP/XP FPGAs
   - Quicklogic : Eclipse/E/II FPGAs
   - UMC-0.18 : UMC 0.18 um CMOS with Virtual Silicon libraries
-  - Xilinx-Spartan/2/3: Xilinx Spartan/2/3 libraries
+  - Xilinx-Spartan/2/3/6: Xilinx Spartan/2/3/6 libraries
   - Xilinx-Spartan3E: Xilinx Spartan3E libraries
   - Xilinx-Virtex/E: Xilinx Virtex/E libraries
-  - Xilinx-Virtex2/4/5: Xilinx Virtex2/4/5 libraries
+  - Xilinx-Virtex2/4/5/6/7: Xilinx Virtex2/4/5/6/7 libraries
 
+  Note: Level of technology support depends on type of GRLIB
+  distribution. A technology may be present in this list while the
+  tech support files are missing from the GRLIB distribution.
+  Actel support is only available in commercial and FT distributions.
 
 Ram library
 CONFIG_MEM_VIRAGE
-  Select RAM generators for ASIC targets. 
+  Select RAM generators for ASIC targets.
 
 Infer ram
 CONFIG_SYN_INFER_RAM

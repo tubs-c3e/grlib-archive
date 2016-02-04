@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -28,6 +28,51 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 package vcomponents is
+
+-- synopsys translate_off
+
+-----------------------------------------
+-----------   FPGA Globals --------------
+-----------------------------------------
+signal GSR : std_logic := '0';
+signal GTS : std_logic := '0';
+signal GWE : std_logic := '0';
+signal PLL_LOCKG : std_logic := 'H';
+signal PROGB_GLBL : std_logic := '0';
+signal CCLKO_GLBL  : std_logic := 'H';
+
+-----------------------------------------
+-----------   CPLD Globals --------------
+-----------------------------------------
+signal PRLD : std_logic := '0';
+
+-----------------------------------------
+-----------   JTAG Globals --------------
+-----------------------------------------
+signal JTAG_TDO_GLBL  : std_logic;
+signal JTAG_TDI_GLBL  : std_logic := '0';
+signal JTAG_TMS_GLBL  : std_logic := '0';
+signal JTAG_TCK_GLBL  : std_logic := '0';
+signal JTAG_TRST_GLBL : std_logic := '0';
+
+signal JTAG_CAPTURE_GLBL : std_logic := '0';
+signal JTAG_RESET_GLBL : std_logic   := '1';
+signal JTAG_SHIFT_GLBL : std_logic   := '1';
+signal JTAG_UPDATE_GLBL : std_logic  := '0';
+signal JTAG_RUNTEST_GLBL : std_logic  := '0';
+
+signal JTAG_SEL1_GLBL : std_logic := '0';
+signal JTAG_SEL2_GLBL : std_logic := '0';
+signal JTAG_SEL3_GLBL : std_logic := '0';
+signal JTAG_SEL4_GLBL : std_logic := '0';
+
+signal JTAG_USER_TDO1_GLBL : std_logic := 'Z';
+signal JTAG_USER_TDO2_GLBL : std_logic := 'Z';
+signal JTAG_USER_TDO3_GLBL : std_logic := 'Z';
+signal JTAG_USER_TDO4_GLBL : std_logic := 'Z';
+
+-- synopsys translate_on
+
   component ramb4_s16 port (
     do   : out std_logic_vector (15 downto 0);
     addr : in  std_logic_vector (7 downto 0);
@@ -1379,19 +1424,80 @@ end component;
     );
   end component;
 
+  ----- component PLLE2_ADV -----
+  component PLLE2_ADV
+    generic (
+       BANDWIDTH : string := "OPTIMIZED";
+       CLKFBOUT_MULT : integer := 5;
+       CLKFBOUT_PHASE : real := 0.0;
+       CLKIN1_PERIOD : real := 0.0;
+       CLKIN2_PERIOD : real := 0.0;
+       CLKOUT0_DIVIDE : integer := 1;
+       CLKOUT0_DUTY_CYCLE : real := 0.5;
+       CLKOUT0_PHASE : real := 0.0;
+       CLKOUT1_DIVIDE : integer := 1;
+       CLKOUT1_DUTY_CYCLE : real := 0.5;
+       CLKOUT1_PHASE : real := 0.0;
+       CLKOUT2_DIVIDE : integer := 1;
+       CLKOUT2_DUTY_CYCLE : real := 0.5;
+       CLKOUT2_PHASE : real := 0.0;
+       CLKOUT3_DIVIDE : integer := 1;
+       CLKOUT3_DUTY_CYCLE : real := 0.5;
+       CLKOUT3_PHASE : real := 0.0;
+       CLKOUT4_DIVIDE : integer := 1;
+       CLKOUT4_DUTY_CYCLE : real := 0.5;
+       CLKOUT4_PHASE : real := 0.0;
+       CLKOUT5_DIVIDE : integer := 1;
+       CLKOUT5_DUTY_CYCLE : real := 0.5;
+       CLKOUT5_PHASE : real := 0.0;
+       COMPENSATION : string := "ZHOLD";
+       DIVCLK_DIVIDE : integer := 1;
+       REF_JITTER1 : real := 0.0;
+       REF_JITTER2 : real := 0.0;
+       STARTUP_WAIT : string := "FALSE"
+    );
+    port (
+       CLKFBOUT : out std_ulogic := '0';
+       CLKOUT0 : out std_ulogic := '0';
+       CLKOUT1 : out std_ulogic := '0';
+       CLKOUT2 : out std_ulogic := '0';
+       CLKOUT3 : out std_ulogic := '0';
+       CLKOUT4 : out std_ulogic := '0';
+       CLKOUT5 : out std_ulogic := '0';
+       DO : out std_logic_vector (15 downto 0);
+       DRDY : out std_ulogic := '0';
+       LOCKED : out std_ulogic := '0';
+       CLKFBIN : in std_ulogic;
+       CLKIN1 : in std_ulogic;
+       CLKIN2 : in std_ulogic;
+       CLKINSEL : in std_ulogic;
+       DADDR : in std_logic_vector(6 downto 0);
+       DCLK : in std_ulogic;
+       DEN : in std_ulogic;
+       DI : in std_logic_vector(15 downto 0);
+       DWE : in std_ulogic;
+       PWRDWN : in std_ulogic;
+       RST : in std_ulogic
+    );
+  end component;
+  
   component BUFGMUX port (O : out std_logic; I0, I1, S : in std_logic); end component;
   component BUFG port (O : out std_logic; I : in std_logic); end component;
   component BUFGP port (O : out std_logic; I : in std_logic); end component;
   component BUFGDLL port (O : out std_logic; I : in std_logic); end component;
 
   component IBUFG  generic(
-      CAPACITANCE : string := "DONT_CARE"; IOSTANDARD : string := "LVCMOS25");
+      CAPACITANCE : string := "DONT_CARE";
+      IBUF_LOW_PWR : boolean := TRUE;
+      IOSTANDARD : string := "LVCMOS25");
     port (O : out std_logic; I : in std_logic); end component;
   component IBUF generic(
       CAPACITANCE : string := "DONT_CARE"; IOSTANDARD : string := "LVCMOS25");
     port (O : out std_ulogic; I : in std_ulogic); end component;
   component IOBUF generic (
       CAPACITANCE : string := "DONT_CARE"; DRIVE : integer := 12;
+      IBUF_DELAY_VALUE : string := "0"; IBUF_LOW_PWR : boolean := TRUE;
+      IFD_DELAY_VALUE : string := "AUTO";
       IOSTANDARD  : string := "LVCMOS25"; SLEW : string := "SLOW");
     port (O : out std_ulogic; IO : inout std_logic; I, T : in std_ulogic); end component;
   component OBUF generic (
@@ -1506,6 +1612,7 @@ end component;
 	);
   end component;
 
+
   component IBUFDS_LVDS_25
      port ( O : out std_ulogic;
 	    I : in std_ulogic;
@@ -1536,7 +1643,8 @@ end component;
   component OBUFDS
 	generic(
 		CAPACITANCE : string := "DONT_CARE";
-		IOSTANDARD : string := "DEFAULT"
+		IOSTANDARD : string := "DEFAULT";
+     		SLEW : string := "SLOW"
 	);
 	port(
 		O : out std_ulogic;
@@ -1561,6 +1669,7 @@ end component;
   component IBUFGDS is
     generic( CAPACITANCE : string  := "DONT_CARE";
       DIFF_TERM   : boolean :=  FALSE; IBUF_DELAY_VALUE : string := "0";
+      IBUF_LOW_PWR : boolean := TRUE;
       IOSTANDARD  : string  := "DEFAULT");
     port (O : out std_logic; I, IB : in std_logic);
   end component;
@@ -2769,5 +2878,786 @@ component RAM64M
     );
 end component;
 
+component XOR2
+  port(
+    O : out std_ulogic;
+
+    I0 : in std_ulogic;
+    I1 : in std_ulogic
+    );
+end component;
+
+component BSCANE2
+  generic (
+     DISABLE_JTAG : string := "FALSE";
+     JTAG_CHAIN : integer := 1
+  );
+  port (
+     CAPTURE : out std_ulogic := 'H';
+     DRCK : out std_ulogic := 'H';
+     RESET : out std_ulogic := 'H';
+     RUNTEST : out std_ulogic := 'L';
+     SEL : out std_ulogic := 'L';
+     SHIFT : out std_ulogic := 'L';
+     TCK : out std_ulogic := 'L';
+     TDI : out std_ulogic := 'L';
+     TMS : out std_ulogic := 'L';
+     UPDATE : out std_ulogic := 'L';
+     TDO : in std_ulogic := 'X'
+  );
+end component;
+
+component BSCAN_SPARTAN6
+  generic (
+     JTAG_CHAIN : integer := 1
+  );
+  port (
+     CAPTURE : out std_ulogic := 'H';
+     DRCK : out std_ulogic := 'H';
+     RESET : out std_ulogic := 'H';
+     RUNTEST : out std_ulogic := 'L';
+     SEL : out std_ulogic := 'L';
+     SHIFT : out std_ulogic := 'L';
+     TCK : out std_ulogic := 'L';
+     TDI : out std_ulogic := 'L';
+     TMS : out std_ulogic := 'L';
+     UPDATE : out std_ulogic := 'L';
+     TDO : in std_ulogic := 'X'
+  );
+end component;
+
+component BSCAN_VIRTEX6
+  generic (
+     DISABLE_JTAG : boolean := FALSE;
+     JTAG_CHAIN : integer := 1
+  );
+  port (
+     CAPTURE : out std_ulogic := 'H';
+     DRCK : out std_ulogic := 'H';
+     RESET : out std_ulogic := 'H';
+     RUNTEST : out std_ulogic := 'L';
+     SEL : out std_ulogic := 'L';
+     SHIFT : out std_ulogic := 'L';
+     TCK : out std_ulogic := 'L';
+     TDI : out std_ulogic := 'L';
+     TMS : out std_ulogic := 'L';
+     UPDATE : out std_ulogic := 'L';
+     TDO : in std_ulogic := 'X'
+  );
+end component;
+
+component SRL16 
+  generic ( INIT : bit_vector := X"0000");
+  port (
+        Q   : out STD_ULOGIC;
+        A0  : in STD_ULOGIC;
+        A1  : in STD_ULOGIC;
+        A2  : in STD_ULOGIC;
+        A3  : in STD_ULOGIC;
+        CLK : in STD_ULOGIC;        
+        D   : in STD_ULOGIC); 
+end component;
+
+component LUT6_2 
+  generic(
+    INIT : bit_vector := X"0000000000000000"
+    );
+
+  port(
+    O5 : out std_ulogic;
+    O6 : out std_ulogic;
+
+    I0 : in std_ulogic;
+    I1 : in std_ulogic;
+    I2 : in std_ulogic;
+    I3 : in std_ulogic;
+    I4 : in std_ulogic;
+    I5 : in std_ulogic
+    );
+end component;
+
+component DSP48E 
+
+  generic(
+
+        SIM_MODE	: string		:= "SAFE";
+
+        ACASCREG	: integer		:= 1;
+        ALUMODEREG	: integer		:= 1;
+        AREG		: integer		:= 1;
+        AUTORESET_PATTERN_DETECT		: boolean		:= FALSE;
+        AUTORESET_PATTERN_DETECT_OPTINV		: string		:= "MATCH";
+        A_INPUT		: string		:= "DIRECT";
+        BCASCREG	: integer		:= 1;
+        BREG		: integer		:= 1;
+        B_INPUT		: string		:= "DIRECT";
+        CARRYINREG	: integer		:= 1;
+        CARRYINSELREG	: integer		:= 1;
+        CREG		: integer		:= 1;
+        MASK            : bit_vector            := X"3FFFFFFFFFFF";
+        MREG		: integer		:= 1;
+        MULTCARRYINREG	: integer		:= 1;
+        OPMODEREG	: integer		:= 1;
+        PATTERN         : bit_vector            := X"000000000000";
+        PREG		: integer		:= 1;
+        SEL_MASK	: string		:= "MASK";
+        SEL_PATTERN	: string		:= "PATTERN";
+        SEL_ROUNDING_MASK	: string	:= "SEL_MASK";
+        USE_MULT	: string		:= "MULT_S";
+        USE_PATTERN_DETECT	: string	:= "NO_PATDET";
+        USE_SIMD	: string		:= "ONE48"
+        );
+
+  port(
+        ACOUT                   : out std_logic_vector(29 downto 0);
+        BCOUT                   : out std_logic_vector(17 downto 0);
+        CARRYCASCOUT            : out std_ulogic;
+        CARRYOUT                : out std_logic_vector(3 downto 0);
+        MULTSIGNOUT             : out std_ulogic;
+        OVERFLOW                : out std_ulogic;
+        P                       : out std_logic_vector(47 downto 0);
+        PATTERNBDETECT          : out std_ulogic;
+        PATTERNDETECT           : out std_ulogic;
+        PCOUT                   : out std_logic_vector(47 downto 0);
+        UNDERFLOW               : out std_ulogic;
+
+        A                       : in  std_logic_vector(29 downto 0);
+        ACIN                    : in  std_logic_vector(29 downto 0);
+        ALUMODE                 : in  std_logic_vector(3 downto 0);
+        B                       : in  std_logic_vector(17 downto 0);
+        BCIN                    : in  std_logic_vector(17 downto 0);
+        C                       : in  std_logic_vector(47 downto 0);
+        CARRYCASCIN             : in  std_ulogic;
+        CARRYIN                 : in  std_ulogic;
+        CARRYINSEL              : in  std_logic_vector(2 downto 0);
+        CEA1                    : in  std_ulogic;
+        CEA2                    : in  std_ulogic;
+        CEALUMODE               : in  std_ulogic;
+        CEB1                    : in  std_ulogic;
+        CEB2                    : in  std_ulogic;
+        CEC                     : in  std_ulogic;
+        CECARRYIN               : in  std_ulogic;
+        CECTRL                  : in  std_ulogic;
+        CEM                     : in  std_ulogic;
+        CEMULTCARRYIN           : in  std_ulogic;
+        CEP                     : in  std_ulogic;
+        CLK                     : in  std_ulogic;
+        MULTSIGNIN              : in std_ulogic;
+        OPMODE                  : in  std_logic_vector(6 downto 0);
+        PCIN                    : in  std_logic_vector(47 downto 0);
+        RSTA                    : in  std_ulogic;
+        RSTALLCARRYIN           : in  std_ulogic;
+        RSTALUMODE              : in  std_ulogic;
+        RSTB                    : in  std_ulogic;
+        RSTC                    : in  std_ulogic;
+        RSTCTRL                 : in  std_ulogic;
+        RSTM                    : in  std_ulogic;
+        RSTP                    : in  std_ulogic
+      );
+
+end component;
+
+component RAMB18
+generic (
+  
+    DOA_REG : integer := 0;
+    DOB_REG : integer := 0;
+    INITP_00 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_01 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_02 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_03 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_04 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_05 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_06 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_07 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_00 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_01 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_02 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_03 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_04 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_05 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_06 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_07 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_08 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_09 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_10 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_11 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_12 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_13 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_14 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_15 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_16 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_17 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_18 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_19 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_20 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_21 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_22 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_23 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_24 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_25 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_26 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_27 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_28 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_29 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_30 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_31 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_32 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_33 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_34 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_35 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_36 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_37 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_38 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_39 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_A : bit_vector := X"00000";
+    INIT_B : bit_vector := X"00000";
+    INIT_FILE : string := "NONE";
+    READ_WIDTH_A : integer := 0;
+    READ_WIDTH_B : integer := 0;
+    SIM_COLLISION_CHECK : string := "ALL";
+    SIM_MODE : string := "SAFE";
+    SRVAL_A : bit_vector := X"00000";
+    SRVAL_B : bit_vector := X"00000";
+    WRITE_MODE_A : string := "WRITE_FIRST";
+    WRITE_MODE_B : string := "WRITE_FIRST";
+    WRITE_WIDTH_A : integer := 0;
+    WRITE_WIDTH_B : integer := 0
+    
+  );
+
+port (
+  
+    DOA : out std_logic_vector(15 downto 0);
+    DOB : out std_logic_vector(15 downto 0);
+    DOPA : out std_logic_vector(1 downto 0);
+    DOPB : out std_logic_vector(1 downto 0);
+    
+    ADDRA : in std_logic_vector(13 downto 0);
+    ADDRB : in std_logic_vector(13 downto 0);
+    CLKA : in std_ulogic;
+    CLKB : in std_ulogic;
+    DIA : in std_logic_vector(15 downto 0);
+    DIB : in std_logic_vector(15 downto 0);
+    DIPA : in std_logic_vector(1 downto 0);
+    DIPB : in std_logic_vector(1 downto 0);
+    ENA : in std_ulogic;
+    ENB : in std_ulogic;
+    REGCEA : in std_ulogic;
+    REGCEB : in std_ulogic;
+    SSRA : in std_ulogic;
+    SSRB : in std_ulogic;
+    WEA : in std_logic_vector(1 downto 0);
+    WEB : in std_logic_vector(1 downto 0)
+
+  );
+end component;
+
+component RAMB36 
+generic (
+
+    DOA_REG : integer := 0;
+    DOB_REG : integer := 0;
+    INITP_00 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_01 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_02 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_03 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_04 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_05 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_06 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_07 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_08 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_09 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_0A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_0B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_0C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_0D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_0E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INITP_0F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_00 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_01 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_02 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_03 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_04 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_05 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_06 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_07 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_08 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_09 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_0F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_10 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_11 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_12 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_13 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_14 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_15 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_16 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_17 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_18 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_19 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_1F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_20 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_21 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_22 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_23 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_24 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_25 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_26 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_27 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_28 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_29 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_2F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_30 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_31 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_32 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_33 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_34 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_35 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_36 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_37 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_38 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_39 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_3F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_40 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_41 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_42 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_43 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_44 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_45 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_46 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_47 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_48 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_49 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_4A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_4B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_4C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_4D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_4E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_4F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_50 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_51 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_52 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_53 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_54 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_55 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_56 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_57 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_58 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_59 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_5A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_5B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_5C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_5D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_5E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_5F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_60 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_61 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_62 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_63 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_64 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_65 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_66 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_67 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_68 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_69 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_6A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_6B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_6C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_6D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_6E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_6F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_70 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_71 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_72 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_73 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_74 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_75 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_76 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_77 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_78 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_79 : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_7A : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_7B : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_7C : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_7D : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_7E : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_7F : bit_vector := X"0000000000000000000000000000000000000000000000000000000000000000";
+    INIT_A : bit_vector := X"000000000";
+    INIT_B : bit_vector := X"000000000";
+    INIT_FILE : string := "NONE";
+    RAM_EXTENSION_A : string := "NONE";
+    RAM_EXTENSION_B : string := "NONE";
+    READ_WIDTH_A : integer := 0;
+    READ_WIDTH_B : integer := 0;
+    SIM_COLLISION_CHECK : string := "ALL";
+    SIM_MODE : string := "SAFE";
+    SRVAL_A : bit_vector := X"000000000";
+    SRVAL_B : bit_vector := X"000000000";
+    WRITE_MODE_A : string := "WRITE_FIRST";
+    WRITE_MODE_B : string := "WRITE_FIRST";
+    WRITE_WIDTH_A : integer := 0;
+    WRITE_WIDTH_B : integer := 0
+    
+  );
+
+port (
+  
+    CASCADEOUTLATA : out std_ulogic;
+    CASCADEOUTLATB : out std_ulogic;
+    CASCADEOUTREGA : out std_ulogic;
+    CASCADEOUTREGB : out std_ulogic;
+    DOA : out std_logic_vector(31 downto 0);
+    DOB : out std_logic_vector(31 downto 0);
+    DOPA : out std_logic_vector(3 downto 0);
+    DOPB : out std_logic_vector(3 downto 0);
+    
+    ADDRA : in std_logic_vector(15 downto 0);
+    ADDRB : in std_logic_vector(15 downto 0);
+    CASCADEINLATA : in std_ulogic;
+    CASCADEINLATB : in std_ulogic;
+    CASCADEINREGA : in std_ulogic;
+    CASCADEINREGB : in std_ulogic;
+    CLKA : in std_ulogic;
+    CLKB : in std_ulogic;
+    DIA : in std_logic_vector(31 downto 0);
+    DIB : in std_logic_vector(31 downto 0);
+    DIPA : in std_logic_vector(3 downto 0);
+    DIPB : in std_logic_vector(3 downto 0);
+    ENA : in std_ulogic;
+    ENB : in std_ulogic;
+    REGCEA : in std_ulogic;
+    REGCEB : in std_ulogic;
+    SSRA : in std_ulogic;
+    SSRB : in std_ulogic;
+    WEA : in std_logic_vector(3 downto 0);
+    WEB : in std_logic_vector(3 downto 0)
+
+  );
+end component;
+
+component BUFGCE
+     port(
+	 O : out STD_ULOGIC;
+         
+	 CE: in STD_ULOGIC;
+	 I : in STD_ULOGIC
+         );
+end component;
+
+component RAM64X1S 
+  generic (
+    INIT : bit_vector(63 downto 0) := X"0000000000000000"
+    );
+
+  port (
+    O : out std_ulogic;
+
+    A0   : in std_ulogic;
+    A1   : in std_ulogic;
+    A2   : in std_ulogic;
+    A3   : in std_ulogic;
+    A4   : in std_ulogic;
+    A5   : in std_ulogic;
+    D    : in std_ulogic;
+    WCLK : in std_ulogic;
+    WE   : in std_ulogic
+    );
+end component;
+
+component IBUFDS_GTXE1
+  generic (
+     CLKCM_CFG : boolean := TRUE;
+     CLKRCV_TRST : boolean := TRUE;
+     REFCLKOUT_DLY : bit_vector := b"0000000000"
+  );
+  port (
+     O : out std_ulogic;
+     ODIV2 : out std_ulogic;
+     CEB : in std_ulogic;
+     I : in std_ulogic;
+     IB : in std_ulogic
+  );
+end component;
+
+----- component MMCM_ADV -----
+component MMCM_ADV
+  generic (
+     BANDWIDTH : string := "OPTIMIZED";
+     CLKFBOUT_MULT_F : real := 5.000;
+     CLKFBOUT_PHASE : real := 0.000;
+     CLKFBOUT_USE_FINE_PS : boolean := FALSE;
+     CLKIN1_PERIOD : real := 0.000;
+     CLKIN2_PERIOD : real := 0.000;
+     CLKOUT0_DIVIDE_F : real := 1.000;
+     CLKOUT0_DUTY_CYCLE : real := 0.500;
+     CLKOUT0_PHASE : real := 0.000;
+     CLKOUT0_USE_FINE_PS : boolean := FALSE;
+     CLKOUT1_DIVIDE : integer := 1;
+     CLKOUT1_DUTY_CYCLE : real := 0.500;
+     CLKOUT1_PHASE : real := 0.000;
+     CLKOUT1_USE_FINE_PS : boolean := FALSE;
+     CLKOUT2_DIVIDE : integer := 1;
+     CLKOUT2_DUTY_CYCLE : real := 0.500;
+     CLKOUT2_PHASE : real := 0.000;
+     CLKOUT2_USE_FINE_PS : boolean := FALSE;
+     CLKOUT3_DIVIDE : integer := 1;
+     CLKOUT3_DUTY_CYCLE : real := 0.500;
+     CLKOUT3_PHASE : real := 0.000;
+     CLKOUT3_USE_FINE_PS : boolean := FALSE;
+     CLKOUT4_CASCADE : boolean := FALSE;
+     CLKOUT4_DIVIDE : integer := 1;
+     CLKOUT4_DUTY_CYCLE : real := 0.500;
+     CLKOUT4_PHASE : real := 0.000;
+     CLKOUT4_USE_FINE_PS : boolean := FALSE;
+     CLKOUT5_DIVIDE : integer := 1;
+     CLKOUT5_DUTY_CYCLE : real := 0.500;
+     CLKOUT5_PHASE : real := 0.000;
+     CLKOUT5_USE_FINE_PS : boolean := FALSE;
+     CLKOUT6_DIVIDE : integer := 1;
+     CLKOUT6_DUTY_CYCLE : real := 0.500;
+     CLKOUT6_PHASE : real := 0.000;
+     CLKOUT6_USE_FINE_PS : boolean := FALSE;
+     CLOCK_HOLD : boolean := FALSE;
+     COMPENSATION : string := "ZHOLD";
+     DIVCLK_DIVIDE : integer := 1;
+     REF_JITTER1 : real := 0.0;
+     REF_JITTER2 : real := 0.0;
+     STARTUP_WAIT : boolean := FALSE
+  );
+  port (
+     CLKFBOUT : out std_ulogic := '0';
+     CLKFBOUTB : out std_ulogic := '0';
+     CLKFBSTOPPED : out std_ulogic := '0';
+     CLKINSTOPPED : out std_ulogic := '0';
+     CLKOUT0 : out std_ulogic := '0';
+     CLKOUT0B : out std_ulogic := '0';
+     CLKOUT1 : out std_ulogic := '0';
+     CLKOUT1B : out std_ulogic := '0';
+     CLKOUT2 : out std_ulogic := '0';
+     CLKOUT2B : out std_ulogic := '0';
+     CLKOUT3 : out std_ulogic := '0';
+     CLKOUT3B : out std_ulogic := '0';
+     CLKOUT4 : out std_ulogic := '0';
+     CLKOUT5 : out std_ulogic := '0';
+     CLKOUT6 : out std_ulogic := '0';
+     DO : out std_logic_vector (15 downto 0);
+     DRDY : out std_ulogic := '0';
+     LOCKED : out std_ulogic := '0';
+     PSDONE : out std_ulogic := '0';
+     CLKFBIN : in std_ulogic;
+     CLKIN1 : in std_ulogic;
+     CLKIN2 : in std_ulogic;
+     CLKINSEL : in std_ulogic;
+     DADDR : in std_logic_vector(6 downto 0);
+     DCLK : in std_ulogic;
+     DEN : in std_ulogic;
+     DI : in std_logic_vector(15 downto 0);
+     DWE : in std_ulogic;
+     PSCLK : in std_ulogic;
+     PSEN : in std_ulogic;
+     PSINCDEC : in std_ulogic;
+     PWRDWN : in std_ulogic;
+     RST : in std_ulogic
+  );
+end component;
+
+component OSERDESE1
+  generic (
+     DATA_RATE_OQ : string := "DDR";
+     DATA_RATE_TQ : string := "DDR";
+     DATA_WIDTH : integer := 4;
+     DDR3_DATA : integer := 1;
+     INIT_OQ : bit := '0';
+     INIT_TQ : bit := '0';
+     INTERFACE_TYPE : string := "DEFAULT";
+     ODELAY_USED : integer := 0;
+     SERDES_MODE : string := "MASTER";
+     SRVAL_OQ : bit := '0';
+     SRVAL_TQ : bit := '0';
+     TRISTATE_WIDTH : integer := 4
+  );
+  port (
+     OCBEXTEND : out std_ulogic;
+     OFB : out std_ulogic;
+     OQ : out std_ulogic;
+     SHIFTOUT1 : out std_ulogic;
+     SHIFTOUT2 : out std_ulogic;
+     TFB : out std_ulogic;
+     TQ : out std_ulogic;
+     CLK : in std_ulogic;
+     CLKDIV : in std_ulogic;
+     CLKPERF : in std_ulogic;
+     CLKPERFDELAY : in std_ulogic;
+     D1 : in std_ulogic;
+     D2 : in std_ulogic;
+     D3 : in std_ulogic;
+     D4 : in std_ulogic;
+     D5 : in std_ulogic;
+     D6 : in std_ulogic;
+     OCE : in std_ulogic;
+     ODV : in std_ulogic;
+     RST : in std_ulogic;
+     SHIFTIN1 : in std_ulogic;
+     SHIFTIN2 : in std_ulogic;
+     T1 : in std_ulogic;
+     T2 : in std_ulogic;
+     T3 : in std_ulogic;
+     T4 : in std_ulogic;
+     TCE : in std_ulogic;
+     WC : in std_ulogic
+  );
+end component;
+
+component IODELAYE1
+  generic (
+     CINVCTRL_SEL : boolean := FALSE;
+     DELAY_SRC : string := "I";
+     HIGH_PERFORMANCE_MODE : boolean := FALSE;
+     IDELAY_TYPE : string := "DEFAULT";
+     IDELAY_VALUE : integer := 0;
+     ODELAY_TYPE : string := "FIXED";
+     ODELAY_VALUE : integer := 0;
+     REFCLK_FREQUENCY : real := 200.0;
+     SIGNAL_PATTERN : string := "DATA"
+  );
+  port (
+     CNTVALUEOUT : out std_logic_vector(4 downto 0);
+     DATAOUT : out std_ulogic;
+     C : in std_ulogic;
+     CE : in std_ulogic;
+     CINVCTRL : in std_ulogic;
+     CLKIN : in std_ulogic;
+     CNTVALUEIN : in std_logic_vector(4 downto 0);
+     DATAIN : in std_ulogic;
+     IDATAIN : in std_ulogic;
+     INC : in std_ulogic;
+     ODATAIN : in std_ulogic;
+     RST : in std_ulogic;
+     T : in std_ulogic
+  );
+end component;
+
+component ISERDESE1
+  generic (
+     DATA_RATE : string := "DDR";
+     DATA_WIDTH : integer := 4;
+     DYN_CLKDIV_INV_EN : boolean := FALSE;
+     DYN_CLK_INV_EN : boolean := FALSE;
+     INIT_Q1 : bit := '0';
+     INIT_Q2 : bit := '0';
+     INIT_Q3 : bit := '0';
+     INIT_Q4 : bit := '0';
+     INTERFACE_TYPE : string := "MEMORY";
+     IOBDELAY : string := "NONE";
+     NUM_CE : integer := 2;
+     OFB_USED : boolean := FALSE;
+     SERDES_MODE : string := "MASTER";
+     SRVAL_Q1 : bit := '0';
+     SRVAL_Q2 : bit := '0';
+     SRVAL_Q3 : bit := '0';
+     SRVAL_Q4 : bit := '0'
+  );
+  port (
+     O : out std_ulogic;
+     Q1 : out std_ulogic;
+     Q2 : out std_ulogic;
+     Q3 : out std_ulogic;
+     Q4 : out std_ulogic;
+     Q5 : out std_ulogic;
+     Q6 : out std_ulogic;
+     SHIFTOUT1 : out std_ulogic;
+     SHIFTOUT2 : out std_ulogic;
+     BITSLIP : in std_ulogic;
+     CE1 : in std_ulogic;
+     CE2 : in std_ulogic;
+     CLK : in std_ulogic;
+     CLKB : in std_ulogic;
+     CLKDIV : in std_ulogic;
+     D : in std_ulogic;
+     DDLY : in std_ulogic;
+     DYNCLKDIVSEL : in std_ulogic;
+     DYNCLKSEL : in std_ulogic;
+     OCLK : in std_ulogic;
+     OFB : in std_ulogic;
+     RST : in std_ulogic;
+     SHIFTIN1 : in std_ulogic;
+     SHIFTIN2 : in std_ulogic
+  );
+end component;
+
+component IOBUFDS_DIFF_OUT
+  generic (
+     DIFF_TERM : boolean := FALSE;
+     IBUF_LOW_PWR : boolean := TRUE;
+     IOSTANDARD : string := "DEFAULT"
+  );
+  port (
+     O : out std_ulogic;
+     OB : out std_ulogic;
+     IO : inout std_ulogic;
+     IOB : inout std_ulogic;
+     I : in std_ulogic;
+     TM : in std_ulogic;
+     TS : in std_ulogic
+  );
+end component;
+
+component SRLC32E
+  generic (
+     INIT : bit_vector := X"00000000"
+  );
+  port (
+     Q : out STD_ULOGIC;
+     Q31 : out STD_ULOGIC;
+     A : in STD_LOGIC_VECTOR (4 downto 0);
+     CE : in STD_ULOGIC;
+     CLK : in STD_ULOGIC;
+     D : in STD_ULOGIC
+  );
+end component;
 
 end;

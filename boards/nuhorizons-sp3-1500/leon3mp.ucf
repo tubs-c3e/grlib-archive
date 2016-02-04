@@ -26,6 +26,7 @@ INST "clkgen0/xc2v.v/sd0.dll1" LOC = DCM_X1Y1;
 INST "clkgen0_xc2v_v_dll0" LOC = DCM_X1Y0;
 INST "clkgen0_xc2v_v_sd0_dll1" LOC = DCM_X1Y1;
 
+NET "phy_tx_clk" CLOCK_DEDICATED_ROUTE = FALSE;
 INST "etxc_pad/xcv2.u0/g1.ttl0.bf" LOC = BUFGMUX3;
 INST "etxc_pad_xcv2.u0_g1.ttl0.bf" LOC = BUFGMUX3;
 INST "erxc_pad/xcv2.u0/g1.ttl0.bf" LOC = BUFGMUX2;

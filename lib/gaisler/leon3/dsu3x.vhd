@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -31,8 +31,6 @@ use grlib.stdlib.all;
 use grlib.devices.all;
 library gaisler;
 use gaisler.leon3.all;
-use gaisler.libiu.all;
-use gaisler.libcache.all;
 library techmap;
 use techmap.gencomp.all;
 
@@ -62,6 +60,7 @@ entity dsu3x is
     dsuo   : out dsu_out_type;
     hclken : in std_ulogic
   );
+  attribute sync_set_reset of rst : signal is "true"; 
 end; 
 
 architecture rtl of dsu3x is
@@ -238,14 +237,14 @@ begin
         vabufi.data(66) := tr.hmastlock;
         vabufi.data(65 downto 64) := ahbmi.hresp;
         if tr.hwrite = '1' then
-          vabufi.data(63 downto 32) := ahbsi2.hwdata;
+          vabufi.data(63 downto 32) := ahbsi2.hwdata(31 downto 0);
         else
-          vabufi.data(63 downto 32) := ahbmi.hrdata;
+          vabufi.data(63 downto 32) := ahbmi.hrdata(31 downto 0);
         end if; 
         vabufi.data(31 downto 0) := tr.haddr;
       else
         vabufi.addr(TBUFABITS-1 downto 0) := tr.haddr(TBUFABITS+3 downto 4);
-        vabufi.data := ahbsi2.hwdata & ahbsi2.hwdata & ahbsi2.hwdata & ahbsi2.hwdata;
+        vabufi.data := ahbsi2.hwdata(31 downto 0) & ahbsi2.hwdata(31 downto 0) & ahbsi2.hwdata(31 downto 0) & ahbsi2.hwdata(31 downto 0);
       end if;
 
 -- write trace buffer
@@ -273,7 +272,7 @@ begin
         tv.hsize := ahbsi2.hsize; tv.hburst := ahbsi2.hburst;
         tv.hmaster := ahbsi2.hmaster; tv.hmastlock := ahbsi2.hmastlock;
       end if;
-      if tr.hsel = '1' then tv.hwdata := ahbsi2.hwdata; end if;
+      if tr.hsel = '1' then tv.hwdata := ahbsi2.hwdata(31 downto 0); end if;
       if ahbsi2.hready = '1' then
         tv.hsel := ahbsi2.hsel(hindex);
         tv.ahbactive := ahbsi2.htrans(1);
@@ -350,67 +349,76 @@ begin
           hrdata := (others => '0');          
           case hasel2 is
             when "00000" =>
-              if (r.slv.hwrite and hclken) = '1' then
-                v.te(index) := ahbsi2.hwdata(0);
-                v.be(index) := ahbsi2.hwdata(1);
-                v.bw(index) := ahbsi2.hwdata(2);
-                v.bs(index) := ahbsi2.hwdata(3);
-                v.bx(index) := ahbsi2.hwdata(4);                
-                v.bz(index) := ahbsi2.hwdata(5);                
-                v.reset(index) := ahbsi2.hwdata(9);                
-                v.halt(index) := ahbsi2.hwdata(10);                
-              else
-                hrdata(0) := r.te(index);
-                hrdata(1) := r.be(index);
-                hrdata(2) := r.bw(index);
-                hrdata(3) := r.bs(index);
-                hrdata(4) := r.bx(index);
-                hrdata(5) := r.bz(index);
-                hrdata(6) := dbgi(index).dsumode;
-                hrdata(7) := r.dsuen(2);
-                hrdata(8) := r.dsubre(2);
-                hrdata(9) := not dbgi(index).error;
-                hrdata(10) := dbgi(index).halt;
-                hrdata(11) := dbgi(index).pwd;
+              if r.slv.hwrite = '1' then
+                if hclken = '1' then
+                  v.te(index) := ahbsi2.hwdata(0);
+                  v.be(index) := ahbsi2.hwdata(1);
+                  v.bw(index) := ahbsi2.hwdata(2);
+                  v.bs(index) := ahbsi2.hwdata(3);
+                  v.bx(index) := ahbsi2.hwdata(4);                
+                  v.bz(index) := ahbsi2.hwdata(5);                
+                  v.reset(index) := ahbsi2.hwdata(9);                
+                  v.halt(index) := ahbsi2.hwdata(10);                
+		else v.reset := r.reset; end if;
               end if;
+              hrdata(0) := r.te(index);
+              hrdata(1) := r.be(index);
+              hrdata(2) := r.bw(index);
+              hrdata(3) := r.bs(index);
+              hrdata(4) := r.bx(index);
+              hrdata(5) := r.bz(index);
+              hrdata(6) := dbgi(index).dsumode;
+              hrdata(7) := r.dsuen(2);
+              hrdata(8) := r.dsubre(2);
+              hrdata(9) := not dbgi(index).error;
+              hrdata(10) := dbgi(index).halt;
+              hrdata(11) := dbgi(index).pwd;
             when "00010" =>  -- timer
-              if (r.slv.hwrite and hclken) = '1' then
-                v.timer := ahbsi2.hwdata(tbits-1 downto 0);
-              else
-                hrdata(tbits-1 downto 0) := r.timer;
+              if r.slv.hwrite = '1' then
+                if hclken = '1' then
+                  v.timer := ahbsi2.hwdata(tbits-1 downto 0);
+                else v.timer := r.timer; end if;
               end if;
+              hrdata(tbits-1 downto 0) := r.timer;
             when "01000" =>
-              if (r.slv.hwrite and hclken) = '1' then
-                v.bn := ahbsi2.hwdata(NCPU-1 downto 0);
-                v.ss := ahbsi2.hwdata(16+NCPU-1 downto 16);
-              else
-                hrdata(NCPU-1 downto 0) := r.bn;
-                hrdata(16+NCPU-1 downto 16) := r.ss; 
+              if r.slv.hwrite = '1' then
+                if hclken = '1' then
+                  v.bn := ahbsi2.hwdata(NCPU-1 downto 0);
+                  v.ss := ahbsi2.hwdata(16+NCPU-1 downto 16);
+		else v.bn := r.bn; v.ss := r.ss; end if;
               end if;
+              hrdata(NCPU-1 downto 0) := r.bn;
+              hrdata(16+NCPU-1 downto 16) := r.ss; 
             when "01001" =>
               if (r.slv.hwrite and hclken) = '1' then
                 v.bmsk(NCPU-1 downto 0) := ahbsi2.hwdata(NCPU-1 downto 0);
                 v.dmsk(NCPU-1 downto 0) := ahbsi2.hwdata(NCPU-1+16 downto 16);
-              else
-                hrdata(NCPU-1 downto 0) := r.bmsk;
-                hrdata(NCPU-1+16 downto 16) := r.dmsk;
               end if;
+              hrdata(NCPU-1 downto 0) := r.bmsk;
+              hrdata(NCPU-1+16 downto 16) := r.dmsk;
             when "10000" =>
 	      if TRACEN then
 	        hrdata((TBUFABITS + 15) downto 16) := tr.delaycnt;
 	        hrdata(2 downto 0) := tr.break & tr.dcnten & tr.enable;
-	        if (r.slv.hwrite and hclken) = '1' then
-	          tv.delaycnt := ahbsi2.hwdata((TBUFABITS+ 15) downto 16);
-	          tv.break  := ahbsi2.hwdata(2);                  
-	          tv.dcnten := ahbsi2.hwdata(1);
-	          tv.enable := ahbsi2.hwdata(0);
+                if r.slv.hwrite = '1' then
+                  if hclken = '1' then
+	            tv.delaycnt := ahbsi2.hwdata((TBUFABITS+ 15) downto 16);
+	            tv.break  := ahbsi2.hwdata(2);                  
+	            tv.dcnten := ahbsi2.hwdata(1);
+	            tv.enable := ahbsi2.hwdata(0);
+		  else 
+		    tv.delaycnt := tr.delaycnt; tv.break := tr.break;
+		    tv.dcnten := tr.dcnten; tv.enable := tr.enable;
+		  end if;
 	        end if;
 	      end if;
             when "10001" =>
 	      if TRACEN then
 	        hrdata((TBUFABITS - 1 + 4) downto 4) := tr.aindex;
-	        if (r.slv.hwrite and hclken) = '1' then
-		  tv.aindex := ahbsi2.hwdata((TBUFABITS - 1 + 4) downto 4);
+                if r.slv.hwrite = '1' then
+                  if hclken = '1' then
+		    tv.aindex := ahbsi2.hwdata((TBUFABITS - 1 + 4) downto 4);
+		  else tv.aindex := tr.aindex; end if;
 	        end if;
 	      end if;
             when "10100" =>
@@ -505,7 +513,7 @@ begin
     end if;
 
     if r.slv.hsel = '1' then
-      if (r.slv.hwrite and hclken) = '1' then v.slv.hwdata := ahbsi2.hwdata; end if;
+      if (r.slv.hwrite and hclken) = '1' then v.slv.hwdata := ahbsi2.hwdata(31 downto 0); end if;
       if (clk2x = 0) or ((r.slv.hready or r.slv.hready2) = '0') then
         v.slv.hrdata := hrdata;
       end if;
@@ -542,6 +550,7 @@ begin
       tv.tbreg1.read := '0'; tv.tbreg1.write := '0';
       tv.tbreg2.read := '0'; tv.tbreg2.write := '0';
       v.slv.hready := '1'; v.halt := (others => '0');
+      v.act := '0'; v.tstop := '0';
     end if;
     vabufi.enable := vabufi.enable and not ahbsi.scanen;
     vabufi.diag := ahbsi.testen & "000";
@@ -563,7 +572,7 @@ begin
       dbgo(i).btrapa <= r.bx(i);
       dbgo(i).btrape <= r.bz(i);
       dbgo(i).daddr <= r.slv.haddr(PROC_L-1 downto 2);
-      dbgo(i).ddata <= r.slv.hwdata;    
+      dbgo(i).ddata <= r.slv.hwdata(31 downto 0);    
       dbgo(i).dwrite <= r.slv.hwrite;
       dbgo(i).halt <= r.halt(i);
       dbgo(i).reset <= r.reset(i);
@@ -575,12 +584,11 @@ begin
     ahbso.hresp <= HRESP_OKAY;
     ahbso.hready <= r.slv.hready;
     if (clk2x = 0) then 
-      ahbso.hrdata <= r.slv.hrdata;
+      ahbso.hrdata <= ahbdrivedata(r.slv.hrdata);
     else
-      ahbso.hrdata <= hrdata2x;
+      ahbso.hrdata <= ahbdrivedata(hrdata2x);
     end if;
     ahbso.hsplit <= (others => '0');
-    ahbso.hcache <= '0';
     ahbso.hirq   <= hirq;
     ahbso.hindex <= hindex;    
 
@@ -602,7 +610,8 @@ begin
     gen4 : for i in ahbsi.htrans'range generate 
       ag4 : clkand generic map (tech => 0, ren => 0) port map (ahbsi.htrans(i), hclken, ahbsi2.htrans(i));
     end generate;
-    gen5 : for i in ahbsi.hwdata'range generate
+--    gen5 : for i in ahbsi.hwdata'range generate
+    gen5 : for i in 0 to 31 generate
       ag5 : clkand generic map (tech => 0, ren => 0) port map (ahbsi.hwdata(i), hclken, ahbsi2.hwdata(i));
     end generate;
     gen6 : for i in ahbsi.hsize'range generate 

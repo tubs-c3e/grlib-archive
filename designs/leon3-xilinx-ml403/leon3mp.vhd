@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -32,9 +32,11 @@ use techmap.gencomp.all;
 use techmap.allclkgen.all;
 library gaisler;
 use gaisler.memctrl.all;
+use gaisler.ddrpkg.all;
 use gaisler.leon3.all;
 use gaisler.uart.all;
 use gaisler.misc.all;
+use gaisler.i2c.all;
 use gaisler.net.all;
 use gaisler.jtag.all;
 use gaisler.spacewire.all;
@@ -196,12 +198,10 @@ signal i2co : i2c_out_type;
 
 constant BOARD_FREQ : integer := 100000;   -- input frequency in KHz
 constant CPU_FREQ : integer := BOARD_FREQ * CFG_CLKMUL / CFG_CLKDIV;  -- cpu frequency in KHz
+constant I2C_FILTER : integer := (CPU_FREQ*5+50000)/100000+1;
 constant IOAEN : integer := CFG_DDRSP;
 
 signal stati : ahbstat_in_type;
-
-signal ddsi  : ddrmem_in_type;
-signal ddso  : ddrmem_out_type;
 
 signal ddrclkfb, ssrclkfb, ddr_clkl, ddr_clk90l, ddr_clknl, ddr_clk270l : std_ulogic;
 signal ddr_clkv 	: std_logic_vector(2 downto 0);
@@ -380,7 +380,8 @@ begin
 	hindex => 0, haddr => 16#400#, hmask => 16#F00#, ioaddr => 1, 
 	pwron => CFG_DDRSP_INIT, MHz => BOARD_FREQ/1000, 
 	clkmul => CFG_DDRSP_FREQ/10, clkdiv => 10, ahbfreq => CPU_FREQ/1000,
-	col => CFG_DDRSP_COL, Mbyte => CFG_DDRSP_SIZE, ddrbits => 32)
+	col => CFG_DDRSP_COL, Mbyte => CFG_DDRSP_SIZE, ddrbits => 32,
+ 	phyiconf => 1)
      port map (
 	rst, rstn, lclk, clkm, lock, clkml, clkml, ahbsi, ahbso(0),
 	ddr_clkv, ddr_clkbv, open, ddr_clk_fb,
@@ -522,7 +523,8 @@ begin
 
   i2cm: if CFG_I2C_ENABLE = 1 generate  -- I2C master
     i2c0 : i2cmst
-      generic map (pindex => 12, paddr => 12, pmask => 16#FFF#, pirq => 11)
+      generic map (pindex => 12, paddr => 12, pmask => 16#FFF#,
+                   pirq => 11, filter => I2C_FILTER)
       port map (rstn, clkm, apbi, apbo(12), i2ci, i2co);
     i2c_scl_pad : iopad generic map (tech => padtech)
       port map (iic_scl, i2co.scl, i2co.scloen, i2ci.scl);

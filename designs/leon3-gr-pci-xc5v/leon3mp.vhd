@@ -4,7 +4,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -196,7 +196,7 @@ signal pcio : pci_out_type;
 signal spwi : grspw_in_type_vector(0 to CFG_SPW_NUM-1);
 signal spwo : grspw_out_type_vector(0 to CFG_SPW_NUM-1);
 signal spw_clkl   : std_logic;
-signal spw_rx_clk : std_logic_vector(1 downto 0);
+signal spw_rx_clk : std_ulogic;
 
 signal stati : ahbstat_in_type;
 
@@ -274,7 +274,8 @@ begin
 	nahbm => CFG_NCPU+CFG_AHB_UART+log2x(CFG_PCI)+CFG_AHB_JTAG+
                CFG_GRETH+CFG_SPW_EN*CFG_SPW_NUM+
                CFG_GRUSBHC*(CFG_GRUSBHC_EHC+CFG_GRUSBHC_UHC)+
-               CFG_GRUSBDC*CFG_GRUSBDC_AIFACE,
+               CFG_GRUSBDC*CFG_GRUSBDC_AIFACE+
+               CFG_GRUSB_DCL,
 	nahbs => 8+CFG_GRUSBHC*CFG_GRUSBHC_UHC+CFG_GRUSBDC)
   port map (rstn, clkm, ahbmi, ahbmo, ahbsi, ahbso);
 
@@ -311,7 +312,7 @@ begin
     		irqi(i), irqo(i), dbgi(i), dbgo(i), fpi(i), fpo(i));
     end generate;
 
-    grfpush0 : grfpushwx generic map ((CFG_FPU-1), CFG_NCPU)
+    grfpush0 : grfpushwx generic map ((CFG_FPU-1), CFG_NCPU, fabtech)
       port map (clkm, rstn, fpi, fpo);
     
   end generate;
@@ -548,7 +549,7 @@ begin
 	port map (pci_arb_req, pci_arb_req_n);
     end generate;
 
-    pcipads0 : pcipads generic map (padtech => padtech)	-- PCI pads
+    pcipads0 : pcipads generic map (padtech => padtech, host => 0)	-- PCI pads
     port map ( pci_rst, pci_gnt, pci_idsel, pci_lock, pci_ad, pci_cbe,
       pci_frame, pci_irdy, pci_trdy, pci_devsel, pci_stop, pci_perr,
       pci_par, pci_req, pci_serr, pci_host, pci_66, pcii, pcio );
@@ -671,7 +672,7 @@ begin
 -----------------------------------------------------------------------
   --This template does NOT currently support grspw2 so only use grspw1 
   spw : if CFG_SPW_EN > 0 generate
-   spw_rx_clk <= (others => '0');
+   spw_rx_clk <= '0';
    spw_clk_pad : clkpad generic map (tech => padtech) port map (spw_clk, spw_clkl); 
 --   spw_clkl <= pciclk;
    swloop : for i in 0 to CFG_SPW_NUM-1 generate
@@ -684,7 +685,7 @@ begin
      fifosize2 => CFG_SPW_RXFIFO, rxclkbuftype => 1, 
      rmapbufs => CFG_SPW_RMAPBUF,ft => CFG_SPW_FT, ports => 1, dmachan => 1,
      netlist => CFG_SPW_NETLIST, spwcore => CFG_SPW_GRSPW)
-     port map(rstn, clkm, spw_rx_clk, spw_clkl, ahbmi,
+     port map(rstn, clkm, spw_rx_clk, spw_rx_clk, spw_clkl, spw_clkl, ahbmi,
         ahbmo(CFG_NCPU+CFG_AHB_UART+log2x(CFG_PCI)+CFG_AHB_JTAG+CFG_GRETH+i),
         apbi, apbo(10+i), spwi(i), spwo(i));
      spwi(i).tickin <= '0'; spwi(i).rmapen <= '0';

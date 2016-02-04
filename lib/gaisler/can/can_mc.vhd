@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ entity can_mc is
     memtech   : integer := DEFMEMTECH;
     ncores    : integer range 1 to 8 := 1;
     sepirq    : integer range 0 to 1 := 0;
-    syncrst   : integer range 0 to 1 := 0;
+    syncrst   : integer range 0 to 2 := 0;
     ft        : integer range 0 to 1 := 0);
    port (                          
       resetn  : in  std_logic;        
@@ -53,6 +53,7 @@ entity can_mc is
       can_rxi : in  std_logic_vector(0 to 7);      
       can_txo : out std_logic_vector(0 to 7)
    );                           
+  attribute sync_set_reset of resetn : signal is "true";
 end;                               
 
 architecture rtl of can_mc is 
@@ -89,6 +90,8 @@ signal vcc, gnd : std_ulogic;
 
 signal r, rin : ahbregs;
 
+attribute sync_set_reset : string;
+attribute sync_set_reset of reset : signal is "true";
 begin
 
   gnd <= '0'; vcc <= '1'; reset <= not resetn;
@@ -98,9 +101,11 @@ begin
   variable hresp : std_logic_vector(1 downto 0);
   variable lcs, dataout : std_logic_vector(7 downto 0);    
   variable irqvec : std_logic_vector(NAHBIRQ-1 downto 0);
+  variable hwdata : std_logic_vector(31 downto 0);
   begin
 
     v := r;
+    hwdata := ahbreadword(ahbsi.hwdata, r.haddr(4 downto 2));
     if (r.hsel = '1' ) and (r.ws /= "11") then v.ws := r.ws + 1; end if;
 
     if ahbsi.hready = '1' then
@@ -122,10 +127,10 @@ begin
     else hresp := HRESP_OKAY; end if;
 
     case r.haddr(1 downto 0) is
-    when "00" => v.hwdata := ahbsi.hwdata(31 downto 24);
-    when "01" => v.hwdata := ahbsi.hwdata(23 downto 16);
-    when "10" => v.hwdata := ahbsi.hwdata(15 downto 8);
-    when others => v.hwdata := ahbsi.hwdata(7 downto 0);
+    when "00" => v.hwdata := hwdata(31 downto 24);
+    when "01" => v.hwdata := hwdata(23 downto 16);
+    when "10" => v.hwdata := hwdata(15 downto 8);
+    when others => v.hwdata := hwdata(7 downto 0);
     end case;
 
     if ncores > 1 then
@@ -144,7 +149,7 @@ begin
     else irqvec(irq) := orv(r.irqo); end if;
 
     ahbso.hirq <= irqvec;
-    ahbso.hrdata  <= dataout & dataout & dataout & dataout;
+    ahbso.hrdata  <= ahbdrivedata(dataout);
     cs <= lcs;
     ahbso.hresp <= hresp; rin <= v;
 
@@ -153,21 +158,20 @@ begin
   reg : process(clk)
   begin if clk'event and clk = '1' then r <= rin; end if; end process;
 
-  cgen : for i in 0 to ncores-1 generate
+  cgen : for i in 0 to 7 generate
    c0 : if i < ncores generate
       cmod : can_mod generic map (memtech, syncrst, ft)
       port map (reset, clk, cs(i), r.hwrite2, r.haddr(7 downto 0), r.hwdata, 
 	data_out(i), irqo(i), can_rxi(i), can_txo(i), ahbsi.testen);
    end generate;
    c1 : if i >= ncores generate
-      can_txo(i) <= '0'; data_out(i) <= (others => '0'); irqo(i) <= '1';
+      can_txo(i) <= '0'; data_out(i) <= (others => '0');
    end generate;
   end generate;
     
     ahbso.hconfig <= hconfig;
     ahbso.hindex  <= slvndx; 
     ahbso.hsplit  <= (others => '0');
-    ahbso.hcache  <= '0';
     ahbso.hready  <= r.hready;
     
     

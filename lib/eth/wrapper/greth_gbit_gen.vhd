@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ entity greth_gbit_gen is
     slot_time      : integer := 128;
     mdcscaler      : integer range 0 to 255 := 25; 
     nsync          : integer range 1 to 2 := 2;
-    edcl           : integer range 0 to 1 := 0;
+    edcl           : integer range 0 to 3 := 1;
     edclbufsz      : integer range 1 to 64 := 1;
     burstlength    : integer range 4 to 128 := 32;
     macaddrh       : integer := 16#00005E#;
@@ -51,9 +51,13 @@ entity greth_gbit_gen is
     sim            : integer range 0 to 1 := 0;
     oepol          : integer range 0 to 1 := 0;
     scanen         : integer range 0 to 1 := 0;
+    ft             : integer range 0 to 2 := 0;
+    edclft         : integer range 0 to 2 := 0;
     mdint_pol      : integer range 0 to 1 := 0;
     enable_mdint   : integer range 0 to 1 := 0;
-    multicast      : integer range 0 to 1 := 0);
+    multicast      : integer range 0 to 1 := 0;
+    edclsepahbg    : integer range 0 to 1 := 0;
+    ramdebug       : integer range 0 to 2 := 0);
   port(
     rst            : in  std_ulogic;
     clk            : in  std_ulogic;
@@ -72,6 +76,21 @@ entity greth_gbit_gen is
     hburst         : out  std_logic_vector(2 downto 0);
     hprot          : out  std_logic_vector(3 downto 0);
     hwdata         : out  std_logic_vector(31 downto 0);
+    --edcl ahb mst in
+    ehgrant        : in  std_ulogic;
+    ehready        : in  std_ulogic;   
+    ehresp         : in  std_logic_vector(1 downto 0);
+    ehrdata        : in  std_logic_vector(31 downto 0); 
+    --edcl ahb mst out
+    ehbusreq       : out  std_ulogic;        
+    ehlock         : out  std_ulogic;
+    ehtrans        : out  std_logic_vector(1 downto 0);
+    ehaddr         : out  std_logic_vector(31 downto 0);
+    ehwrite        : out  std_ulogic;
+    ehsize         : out  std_logic_vector(2 downto 0);
+    ehburst        : out  std_logic_vector(2 downto 0);
+    ehprot         : out  std_logic_vector(3 downto 0);
+    ehwdata        : out  std_logic_vector(31 downto 0);
     --apb slv in 
     psel	   : in   std_ulogic;
     penable	   : in   std_ulogic;
@@ -104,7 +123,13 @@ entity greth_gbit_gen is
     mdio_oe        : out  std_ulogic;
     --scantest
     testrst        : in   std_ulogic;
-    testen         : in   std_ulogic
+    testen         : in   std_ulogic;
+    testoen        : in   std_ulogic;
+    edcladdr       : in   std_logic_vector(3 downto 0);
+    edclsepahb     : in   std_ulogic;
+    edcldisable    : in   std_ulogic;
+    speed          : out  std_ulogic;
+    gbit           : out  std_ulogic
     );
 end entity;
   
@@ -167,7 +192,9 @@ begin
       scanen         => scanen,
       mdint_pol      => mdint_pol,
       enable_mdint   => enable_mdint,
-      multicast      => multicast)
+      multicast      => multicast,
+      edclsepahbg    => edclsepahbg,
+      ramdebug       => ramdebug)
     port map(
       rst            => rst,
       clk            => clk,
@@ -186,6 +213,21 @@ begin
       hburst         => hburst,
       hprot          => hprot,
       hwdata         => hwdata,
+      --edcl ahb mst in
+      ehgrant        => ehgrant,
+      ehready        => ehready,
+      ehresp         => ehresp,
+      ehrdata        => ehrdata,
+      --edcl ahb mst out
+      ehbusreq       => ehbusreq,
+      ehlock         => ehlock,
+      ehtrans        => ehtrans,
+      ehaddr         => ehaddr,
+      ehwrite        => ehwrite,
+      ehsize         => ehsize,
+      ehburst        => ehburst,
+      ehprot         => ehprot,
+      ehwdata        => ehwdata,
       --apb slv in 
       psel	     => psel,
       penable	     => penable,
@@ -241,35 +283,60 @@ begin
       mdio_oe        => mdio_oe,
       --scantest     
       testrst        => testrst,
-      testen         => testen);
+      testen         => testen,
+      testoen        => testoen,
+      edcladdr       => edcladdr,
+      edclsepahb     => edclsepahb,
+      edcldisable    => edcldisable,
+      speed          => speed,
+      gbit           => gbit);
 
 -------------------------------------------------------------------------------
 -- FIFOS ----------------------------------------------------------------------
 -------------------------------------------------------------------------------
-  tx_fifo0 : syncram_2p generic map(tech => memtech, abits => fabits,
-    dbits => 32, sepclk => 0)
-    port map(clk, txrenable, txraddress(fabits-1 downto 0), txrdata, clk,
-    txwrite, txwaddress(fabits-1 downto 0), txwdata);
+  nft : if ft = 0 generate
+    tx_fifo0 : syncram_2p generic map(tech => memtech, abits => fabits,
+      dbits => 32, sepclk => 0)
+      port map(clk, txrenable, txraddress(fabits-1 downto 0), txrdata, clk,
+      txwrite, txwaddress(fabits-1 downto 0), txwdata);
+  
+    rx_fifo0 : syncram_2p generic map(tech => memtech, abits => fabits,
+      dbits => 32, sepclk => 0)
+      port map(clk, rxrenable, rxraddress(fabits-1 downto 0), rxrdata, clk,
+      rxwrite, rxwaddress(fabits-1 downto 0), rxwdata);
+  end generate;
 
-  rx_fifo0 : syncram_2p generic map(tech => memtech, abits => fabits,
-    dbits => 32, sepclk => 0)
-    port map(clk, rxrenable, rxraddress(fabits-1 downto 0), rxrdata, clk,
-    rxwrite, rxwaddress(fabits-1 downto 0), rxwdata);
+  ft1 : if ft /= 0 generate
+    tx_fifo0 : syncram_2pft generic map(tech => memtech, abits => fabits,
+      dbits => 32, sepclk => 0, ft => ft)
+      port map(clk, txrenable, txraddress(fabits-1 downto 0), txrdata, clk,
+      txwrite, txwaddress(fabits-1 downto 0), txwdata);
+
+    rx_fifo0 : syncram_2pft generic map(tech => memtech, abits => fabits,
+      dbits => 32, sepclk => 0, ft => ft)
+      port map(clk, rxrenable, rxraddress(fabits-1 downto 0), rxrdata, clk,
+      rxwrite, rxwaddress(fabits-1 downto 0), rxwdata);
+  end generate;
 
 -------------------------------------------------------------------------------
 -- EDCL buffer ram ------------------------------------------------------------
 -------------------------------------------------------------------------------
-  edclram : if (edcl = 1) generate
-    rloopm : for i in 0 to 1 generate
-      r0 : syncram_2p generic map (memtech, eabits, 8) port map (
-	clk, erenable, eraddress(eabits-1 downto 0), erdata(i*8+23 downto i*8+16), clk,
-        ewritem, ewaddressm(eabits-1 downto 0), ewdata(i*8+23 downto i*8+16)); 
-    end generate;
-    rloopl : for i in 0 to 1 generate
-      r0 : syncram_2p generic map (memtech, eabits, 8) port map (
-	clk, erenable, eraddress(eabits-1 downto 0), erdata(i*8+7 downto i*8), clk,
-        ewritel, ewaddressl(eabits-1 downto 0), ewdata(i*8+7 downto i*8)); 
-    end generate;
+  edclramnft : if (edcl /= 0) and (edclft = 0) generate
+    r0 : syncram_2p generic map (memtech, eabits, 16) port map (
+      clk, erenable, eraddress(eabits-1 downto 0), erdata(31 downto 16), clk,
+      ewritem, ewaddressm(eabits-1 downto 0), ewdata(31 downto 16)); 
+    r1 : syncram_2p generic map (memtech, eabits, 16) port map (
+      clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
+      ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0)); 
+  end generate;
+
+  edclramft1 : if (edcl /= 0) and (edclft /= 0) generate
+    r0 : syncram_2pft generic map (memtech, eabits, 16, 0, 0, edclft) port map (
+      clk, erenable, eraddress(eabits-1 downto 0), erdata(31 downto 16), clk,
+      ewritem, ewaddressm(eabits-1 downto 0), ewdata(31 downto 16)); 
+    r1 : syncram_2pft generic map (memtech, eabits, 16, 0, 0, edclft) port map (
+      clk, erenable, eraddress(eabits-1 downto 0), erdata(15 downto 0), clk,
+      ewritel, ewaddressl(eabits-1 downto 0), ewdata(15 downto 0)); 
   end generate;
   
 end architecture;

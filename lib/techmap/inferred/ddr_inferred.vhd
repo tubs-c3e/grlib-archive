@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -63,8 +63,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity gen_oddr_reg is
-  port
-    ( Q : out std_ulogic;
+  port (
+      Q : out std_ulogic;
       C1 : in std_ulogic;
       C2 : in std_ulogic;
       CE : in std_ulogic;
@@ -75,18 +75,18 @@ entity gen_oddr_reg is
 end;
 
 architecture rtl of gen_oddr_reg is
-  signal preD2 : std_ulogic;
+  signal Q1,Q2: std_ulogic;
+  
 begin
-  ddrreg : process(R,C1)
+
+  Q <= Q1 when C1='1' else Q2;
+  
+  ddrregp: process(C1,R,S)
   begin
-    if R = '1' then Q <= '0'; 
-    elsif rising_edge(C1) then
-      Q <= D1;
-      preD2 <= D2;
-    elsif falling_edge(C1) then
-      Q <= preD2;
-    end if;
+    if rising_edge(C1) then Q1 <= D1; Q2 <= D2; end if;
+    if S='1' then Q1 <= '1'; Q2 <= '1'; end if;
+    if R='1' then Q1 <= '0'; Q2 <= '0'; end if;
   end process;
   
 end;
-
+  

@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ use techmap.allpads.all;
 
 entity lvds_combo  is
   generic (tech : integer := 0; voltage : integer := 0; width : integer := 1;
-		oepol : integer := 0);
+		oepol : integer := 0;  term : integer := 0);
   port (odpadp, odpadn, ospadp, ospadn : out std_logic_vector(0 to width-1); 
         odval, osval, en : in std_logic_vector(0 to width-1); 
 	idpadp, idpadn, ispadp, ispadn : in std_logic_vector(0 to width-1);
@@ -58,6 +58,11 @@ begin
     oen <= not en when oepol /= padoen_polarity(tech) else en;
     ut025 : if tech = ut25 generate
       u0: ut025crh_lvds_combo generic map (voltage, width)
+        port map (odpadp, odpadn, ospadp, ospadn, odval, osval, oen, 
+		  idpadp, idpadn, ispadp, ispadn, idval, isval);
+    end generate;
+    ut13  : if tech = ut130 generate
+      u0: ut130hbd_lvds_combo generic map (voltage, width)
         port map (odpadp, odpadn, ospadp, ospadn, odval, osval, oen, 
 		  idpadp, idpadn, ispadp, ispadn, idval, isval);
     end generate;

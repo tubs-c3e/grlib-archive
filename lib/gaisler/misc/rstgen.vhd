@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --  This file is a part of the GRLIB VHDL IP LIBRARY
 --  Copyright (C) 2003 - 2008, Gaisler Research
---  Copyright (C) 2008, 2009, Aeroflex Gaisler
+--  Copyright (C) 2008 - 2013, Aeroflex Gaisler
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -27,8 +27,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity rstgen is
-  generic (acthigh : integer := 0; syncrst : integer := 0;
-	   scanen : integer := 0);
+  generic (
+    acthigh : integer := 0;
+    syncrst : integer := 0;
+    scanen  : integer := 0);
   port (
     rstin     : in  std_ulogic;
     clk       : in  std_ulogic;

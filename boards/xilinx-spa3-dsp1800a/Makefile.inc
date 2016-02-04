@@ -2,12 +2,10 @@
 # the DSP macro blocks the Spartan 3A technology 
 # without DSP is used for synthesis
 #
-TECHNOLOGY=spartan-3A-DSP
-ISETECH="spartan-3A DSP"
+TECHNOLOGY=Spartan-3A-DSP
+ISETECH="Spartan-3A DSP"
 PART=XC3SD1800A
-#TECHNOLOGY=spartan3A
-#PART=XC3S1400A
-PACKAGE=FG676
+PACKAGE=fg676
 SPEED=-4
 SYNFREQ=140
 PROMGENPAR=-x xcf08p -u 0 $(TOP).bit -p mcs -w -o xilinx-spa3-dsp1800a
